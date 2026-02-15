@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GBA Rom Translator - Clean Engine</title>
+    <title>GBA Rom Translator - Ultra AI Filter</title>
     <style>
-        :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --btn: #238636; --text: #c9d1d9; --border: #30363d; }
+        :root { --bg: #0d1117; --card: #161b22; --accent: #ff7b72; --btn: #238636; --text: #c9d1d9; --border: #30363d; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
         .container { max-width: 900px; margin: 0 auto; }
         h1 { text-align: center; color: var(--accent); font-size: 1.6rem; margin-bottom: 20px; }
@@ -25,7 +25,7 @@
 <body>
 
 <div class="container">
-    <h1>GBA Translator 🧹 (Clean Engine)</h1>
+    <h1>GBA Translator 🧠 (AI Filter Mode)</h1>
 
     <div class="card">
         <h3>1. File ROM (.gba)</h3>
@@ -34,16 +34,16 @@
     </div>
 
     <div class="card">
-        <h3>2. Estrazione Anti-Spazzatura</h3>
+        <h3>2. Estrazione Senza Duplicati</h3>
         <select id="extractMode">
-            <option value="short">⚔️ Mosse/Oggetti/Nomi (Testi Corti Maiuscoli)</option>
-            <option value="dialogs">💬 Dialoghi (Testi lunghi con codici \n)</option>
+            <option value="short">⚔️ Mosse/Oggetti/Nomi (Niente doppioni)</option>
+            <option value="dialogs">💬 Dialoghi Veri (Solo testo umano)</option>
         </select>
-        <button onclick="smartScan()">Avvia Scansione Pulita</button>
+        <button onclick="smartScan()">Avvia Scansione Perfetta</button>
         
         <div class="preview-box">
             <table>
-                <thead><tr><th>Offset</th><th>Max Byte</th><th>Testo Originale</th></tr></thead>
+                <thead><tr><th>Offset</th><th>Max Byte</th><th>Testo Unico</th></tr></thead>
                 <tbody id="resBody"></tbody>
             </table>
         </div>
@@ -65,42 +65,44 @@
     
     let rom = null;
     let scanResults = [];
+    let uniqueStrings = new Set(); // IL DISTRUTTORE DI DUPLICATI
 
     const log = (m) => { const l = document.getElementById('log'); l.innerHTML += `> ${m}<br>`; l.scrollTop = l.scrollHeight; };
 
     document.getElementById('romFile').onchange = function(e) {
         const reader = new FileReader();
-        reader.onload = () => { rom = new Uint8Array(reader.result); document.getElementById('romName').innerText = "ROM: " + e.target.files[0].name; log("ROM Caricata."); };
+        reader.onload = () => { rom = new Uint8Array(reader.result); document.getElementById('romName').innerText = "ROM: " + e.target.files[0].name; log("ROM Caricata. Pronta per l'analisi."); };
         reader.readAsArrayBuffer(this.files[0]);
     };
 
-    // IL CUORE DEL SISTEMA ANTI-SPAZZATURA
     function isValidText(str, mode) {
         if (!str || str.length < 3) return false;
 
-        // FILTRO DIALOGHI
         if (mode === 'dialogs') {
             if (str.length < 15) return false;
             if (!str.includes('\\n') && !str.includes('\\p') && !str.includes('\\l')) return false;
             
-            // Regola 1: Niente blocchi di strani simboli (Es: ËËË o œœœ)
-            if (/[À-ÿ]{3,}/.test(str)) return false; 
+            // Regola "Testo Umano": Un dialogo lungo senza spazi è grafica compressa.
+            const spaceCount = (str.match(/ /g) || []).length;
+            if (str.length > 25 && spaceCount < 2) return false; // Uccide i blocchi tipo Ã®Ã‹EEqÃ¨QF
             
-            // Regola 2: Deve contenere almeno due spazi vuoti (il codice macchina non usa spazi)
-            const spaces = (str.match(/ /g) || []).length;
-            if (spaces < 2 && str.length > 30) return false;
+            // Regola "Anti-Glitch": Niente blocchi di strani simboli
+            if (/[À-ÿ\^~#@]{2,}/.test(str)) return false; 
             
             return true;
         }
 
-        // FILTRO MOSSE / OGGETTI (Cambiato in "Short" generico per onestà)
         if (mode === 'short') {
-            if (str.length > 16) return false;
-            if (str !== str.toUpperCase()) return false; // Deve essere per forza TUTTO MAIUSCOLO
-            if (str.includes('\\')) return false; // Niente codici a capo
+            if (str.length > 18) return false;
+            if (str !== str.toUpperCase()) return false; 
+            if (str.includes('\\')) return false; 
             
-            // Regola anti-alieni per parole corte (Es: OÀ Ì Á)
-            if (/[À-ÿ]/.test(str)) return false; // Elimina quasiasi parola con lettere accentate strane
+            // Regola "Parola Vera": Deve esserci un blocco di almeno 3 lettere A-Z attaccate.
+            // Questo distrugge "Y T", "R", "V-", "E Y"
+            if (!/[A-Z]{3,}/.test(str)) return false; 
+            
+            // Regola Anti-Sporcizia: Niente lettere strane
+            if (/[^A-Z0-9 \.\!\?\-]/.test(str)) return false; 
             
             return true;
         }
@@ -113,6 +115,7 @@
         const body = document.getElementById('resBody');
         body.innerHTML = "";
         scanResults = [];
+        uniqueStrings.clear(); // Azzera la memoria dei duplicati
         log(`Scansione in corso per: ${mode}...`);
 
         let i = 0x200000;
@@ -121,7 +124,6 @@
         function doScan() {
             let limit = Math.min(i + 0x50000, rom.length);
             for(; i < limit; i++) {
-                // Inizia a leggere se trova una lettera standard A-Z
                 if(rom[i] >= 0xBB && rom[i] <= 0xD4) {
                     let s = "", j = i;
                     while(j < rom.length && rom[j] !== 0xFF && s.length < 500) {
@@ -129,7 +131,10 @@
                         j++;
                     }
 
-                    if(isValidText(s, mode)) {
+                    // Se il testo è valido E NON è mai stato visto prima
+                    if(isValidText(s, mode) && !uniqueStrings.has(s)) {
+                        uniqueStrings.add(s); // Salvalo nella memoria per non ripeterlo
+                        
                         const off = "0x" + i.toString(16).toUpperCase();
                         const bytes = j - i;
                         scanResults.push({o: off, t: s, b: bytes});
@@ -142,7 +147,7 @@
                 }
             }
             if(i < rom.length - 1) requestAnimationFrame(doScan);
-            else log(`Fine Scansione. Trovate ${count} stringhe PULITE.`);
+            else log(`Scansione finita. Trovate ${count} stringhe UNICHE.`);
         }
         doScan();
     }
@@ -200,22 +205,22 @@
                 }
                 bytes.push(invMap[text[k]] !== undefined ? invMap[text[k]] : 0x00);
             }
-            bytes.push(0xFF); // Terminatore GBA
+            bytes.push(0xFF); // Terminatore
 
             if(bytes.length <= maxB + 1) {
-                rom.set(bytes, oldOff); // Sovrascrive (nessuno spazio extra usato)
+                rom.set(bytes, oldOff);
                 d++;
             } else {
                 let newOff = findFreeSpace(bytes.length);
                 if(newOff !== -1) {
-                    rom.set(bytes, newOff); // Ripunta in spazio vuoto
+                    rom.set(bytes, newOff); 
                     repoint(oldOff, newOff);
                     r++;
                 }
             }
         });
 
-        log(`Patch terminata. Parole cambiate: ${d} | Ripuntate: ${r}`);
+        log(`Patch terminata! Parole sovrascritte: ${d} | Spostate: ${r}`);
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([rom], {type:'application/octet-stream'}));
         a.download = "Pokemon_Smeraldo_ITA.gba";
