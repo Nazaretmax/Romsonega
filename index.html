@@ -3,77 +3,457 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GBA Rom Translator - Ultra AI Filter</title>
+    <title>GBA Ultra Translator</title>
     <style>
-        :root { --bg: #0d1117; --card: #161b22; --accent: #ff7b72; --btn: #238636; --text: #c9d1d9; --border: #30363d; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
-        .container { max-width: 900px; margin: 0 auto; }
-        h1 { text-align: center; color: var(--accent); font-size: 1.6rem; margin-bottom: 20px; }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 15px; }
-        select, button, input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid var(--border); background: #0d1117; color: white; font-size: 15px; }
-        button { background: var(--accent); border: none; font-weight: bold; color: #0d1117; cursor: pointer; }
-        button:hover { opacity: 0.9; }
-        .btn-green { background: var(--btn); color: white; }
-        .log-box { background: #010409; height: 100px; border: 1px solid var(--border); border-radius: 6px; padding: 10px; overflow-y: auto; font-family: monospace; font-size: 12px; color: #8b949e; }
-        .preview-box { height: 350px; background: #010409; border: 1px solid var(--border); border-radius: 6px; overflow-y: auto; margin-top: 10px; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; font-family: monospace; }
-        th { background: #161b22; color: var(--accent); padding: 8px; text-align: left; position: sticky; top: 0; }
-        td { padding: 8px; border-bottom: 1px solid var(--border); }
-        .hex { color: #d2a8ff; font-weight: bold; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg-primary: #0a0e27;
+            --bg-secondary: #151b38;
+            --bg-card: #1a2142;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --success: #10b981;
+            --danger: #ef4444;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border: #2d3651;
+            --shadow: rgba(99, 102, 241, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #0f1629 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 1rem;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 2rem 1rem;
+            background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+            border-radius: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 20px 60px var(--shadow);
+        }
+
+        .header h1 {
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #fff, #e2e8f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header p {
+            font-size: clamp(0.875rem, 2vw, 1rem);
+            opacity: 0.9;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: clamp(1rem, 3vw, 1.5rem);
+            margin-bottom: 1.5rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-title {
+            font-size: clamp(1.1rem, 2.5vw, 1.25rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--accent);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Inputs */
+        input[type="file"], select, button {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border-radius: 0.75rem;
+            border: 2px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: clamp(0.875rem, 2vw, 1rem);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        input[type="file"]:hover, select:hover {
+            border-color: var(--accent);
+            background: var(--bg-card);
+        }
+
+        button {
+            font-weight: 600;
+            border: none;
+            background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+            margin-top: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px var(--shadow);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+        }
+
+        /* File Info */
+        .file-info {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Preview Box */
+        .preview-container {
+            margin-top: 1rem;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+        }
+
+        .preview-header {
+            background: var(--bg-secondary);
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .preview-stats {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .preview-box {
+            height: clamp(300px, 40vh, 500px);
+            overflow-y: auto;
+            overflow-x: auto;
+        }
+
+        /* Custom Scrollbar */
+        .preview-box::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .preview-box::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        .preview-box::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+            font-family: 'Fira Code', 'Courier New', monospace;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: var(--bg-card);
+        }
+
+        th {
+            padding: 1rem 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--accent);
+            border-bottom: 2px solid var(--border);
+        }
+
+        td {
+            padding: 0.875rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr {
+            transition: background 0.2s;
+        }
+
+        tbody tr:hover {
+            background: var(--bg-secondary);
+        }
+
+        .hex {
+            color: #a78bfa;
+            font-weight: 700;
+        }
+
+        .text-cell {
+            word-break: break-word;
+            max-width: 500px;
+        }
+
+        /* Log Box */
+        .log-box {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            height: 120px;
+            overflow-y: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .log-box::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .log-box::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 3px;
+        }
+
+        /* Loading Animation */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 1.5rem 1rem;
+                border-radius: 1rem;
+            }
+
+            .card {
+                padding: 1rem;
+            }
+
+            th, td {
+                padding: 0.75rem 0.5rem;
+            }
+
+            .text-cell {
+                max-width: 200px;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+            max-width: 90vw;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>GBA Translator 🧠 (AI Filter Mode)</h1>
-
-    <div class="card">
-        <h3>1. File ROM (.gba)</h3>
-        <input type="file" id="romFile" accept=".gba">
-        <div id="romName" style="font-size: 12px; color: #8b949e;">Attesa ROM...</div>
+    <div class="header">
+        <h1>🎮 GBA Ultra Translator</h1>
+        <p>Estrazione intelligente con filtri AI avanzati</p>
     </div>
 
     <div class="card">
-        <h3>2. Estrazione Senza Duplicati</h3>
-        <select id="extractMode">
-            <option value="short">⚔️ Mosse/Oggetti/Nomi (Niente doppioni)</option>
-            <option value="dialogs">💬 Dialoghi Veri (Solo testo umano)</option>
-        </select>
-        <button onclick="smartScan()">Avvia Scansione Perfetta</button>
-        
-        <div class="preview-box">
-            <table>
-                <thead><tr><th>Offset</th><th>Max Byte</th><th>Testo Unico</th></tr></thead>
-                <tbody id="resBody"></tbody>
-            </table>
+        <div class="card-title">
+            <span>📁</span> Carica ROM
         </div>
-        <button style="background:transparent; border:1px solid var(--accent); color:var(--accent); margin-top:10px;" onclick="exportTxt()">💾 Scarica File TXT</button>
+        <input type="file" id="romFile" accept=".gba">
+        <div class="file-info" id="romInfo">
+            ⏳ In attesa di un file ROM...
+        </div>
     </div>
 
     <div class="card">
-        <h3>3. Patch & Repoint</h3>
-        <input type="file" id="txtFile" accept=".txt">
-        <button class="btn-green" onclick="applyPatch()">⚡ Applica Traduzione alla ROM</button>
+        <div class="card-title">
+            <span>🔍</span> Modalità Estrazione
+            <span class="badge" id="modeBadge">INTELLIGENTE</span>
+        </div>
+        <select id="extractMode">
+            <option value="short">⚔️ Mosse/Oggetti/Nomi (Ultra-filtrato)</option>
+            <option value="dialogs">💬 Dialoghi (Solo testo umano vero)</option>
+        </select>
+        <button onclick="smartScan()">
+            Avvia Scansione Ultra-Precisa
+        </button>
+        
+        <div class="preview-container">
+            <div class="preview-header">
+                <div class="preview-stats" id="stats">Nessun dato</div>
+                <button class="btn-secondary" onclick="exportTxt()" style="width: auto; padding: 0.5rem 1rem; margin: 0;">
+                    💾 Scarica TXT
+                </button>
+            </div>
+            <div class="preview-box">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Offset</th>
+                            <th>Byte</th>
+                            <th>Testo Estratto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resBody"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <div class="log-box" id="log">Pronto...</div>
+    <div class="card">
+        <div class="card-title">
+            <span>⚡</span> Applica Traduzione
+        </div>
+        <input type="file" id="txtFile" accept=".txt">
+        <button class="btn-success" onclick="applyPatch()">
+            Patchare ROM Tradotta
+        </button>
+    </div>
+
+    <div class="log-box" id="log">✅ Sistema pronto. In attesa di comandi...</div>
 </div>
 
 <script>
     const charMap = { 0x00: ' ', 0x01: 'À', 0x02: 'Á', 0x03: 'Â', 0x04: 'Ç', 0x05: 'È', 0x06: 'É', 0x07: 'Ê', 0x08: 'Ë', 0x09: 'Ì', 0x0B: 'Î', 0x0C: 'Ï', 0x0D: 'Ò', 0x0E: 'Ó', 0x0F: 'Ô', 0x10: 'Œ', 0x11: 'Ù', 0x12: 'Ú', 0x13: 'Û', 0x14: 'Ÿ', 0x15: 'ß', 0x16: 'à', 0x17: 'á', 0x19: 'ç', 0x1A: 'è', 0x1B: 'é', 0x1C: 'ê', 0x1D: 'ë', 0x1E: 'ì', 0x20: 'î', 0x21: 'ï', 0x22: 'ò', 0x23: 'ó', 0x24: 'ô', 0x25: 'œ', 0x26: 'ù', 0x27: 'ú', 0x28: 'û', 0x29: 'ÿ', 0x2D: '&', 0x2E: '+', 0xAB: '!', 0xAC: '?', 0xAD: '.', 0xAE: '-', 0xB0: '...', 0xB8: ',', 0xBB: 'A', 0xBC: 'B', 0xBD: 'C', 0xBE: 'D', 0xBF: 'E', 0xC0: 'F', 0xC1: 'G', 0xC2: 'H', 0xC3: 'I', 0xC4: 'J', 0xC5: 'K', 0xC6: 'L', 0xC7: 'M', 0xC8: 'N', 0xC9: 'O', 0xCA: 'P', 0xCB: 'Q', 0xCC: 'R', 0xCD: 'S', 0xCE: 'T', 0xCF: 'U', 0xD0: 'V', 0xD1: 'W', 0xD2: 'X', 0xD3: 'Y', 0xD4: 'Z', 0xD5: 'a', 0xD6: 'b', 0xD7: 'c', 0xD8: 'd', 0xD9: 'e', 0xDA: 'f', 0xDB: 'g', 0xDC: 'h', 0xDD: 'i', 0xDE: 'j', 0xDF: 'k', 0xE0: 'l', 0xE1: 'm', 0xE2: 'n', 0xE3: 'o', 0xE4: 'p', 0xE5: 'q', 0xE6: 'r', 0xE7: 's', 0xE8: 't', 0xE9: 'u', 0xEA: 'v', 0xEB: 'w', 0xEC: 'x', 0xED: 'y', 0xEE: 'z', 0xFA: '\\l', 0xFB: '\\p', 0xFD: '\\v', 0xFE: '\\n' };
     const invMap = Object.fromEntries(Object.entries(charMap).map(([k,v]) => [v, parseInt(k)]));
     
+    // SILLABE COMUNI IN ITALIANO/INGLESE PER RICONOSCERE PAROLE VERE
+    const commonSyllables = ['TI', 'TA', 'TO', 'TE', 'TU', 'CA', 'CO', 'CHE', 'CHI', 'SA', 'SO', 'SE', 'SI', 'SU', 
+                             'LA', 'LE', 'LI', 'LO', 'LU', 'MA', 'ME', 'MI', 'MO', 'MU', 'NA', 'NE', 'NI', 'NO', 
+                             'RA', 'RE', 'RI', 'RO', 'RU', 'PA', 'PE', 'PI', 'PO', 'PU', 'BA', 'BE', 'BI', 'BO',
+                             'DA', 'DE', 'DI', 'DO', 'DU', 'GI', 'GA', 'GO', 'GU', 'GE', 'FA', 'FI', 'FO', 'FE',
+                             'VA', 'VE', 'VI', 'VO', 'VU', 'ZA', 'ZE', 'ZI', 'ZO', 'ZU', 'ZZA', 'ZZO', 'ZZI',
+                             'TRA', 'TRE', 'TRI', 'TRO', 'PRE', 'PRA', 'PRO', 'STA', 'STO', 'STI', 'STE',
+                             'THE', 'ING', 'ION', 'TER', 'EST', 'FOR', 'TIO', 'ATI', 'ATE', 'ICA', 'ICO',
+                             'URA', 'URE', 'ORA', 'ORE', 'ORI', 'ERA', 'ERE', 'ERI', 'ARO', 'ARE', 'ARI'];
+    
     let rom = null;
     let scanResults = [];
-    let uniqueStrings = new Set(); // IL DISTRUTTORE DI DUPLICATI
+    let uniqueStrings = new Set();
 
-    const log = (m) => { const l = document.getElementById('log'); l.innerHTML += `> ${m}<br>`; l.scrollTop = l.scrollHeight; };
+    const log = (m, type = 'info') => {
+        const l = document.getElementById('log');
+        const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : '▶️';
+        l.innerHTML += `${icon} ${m}<br>`;
+        l.scrollTop = l.scrollHeight;
+    };
+
+    const showToast = (msg, type = 'success') => {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    };
 
     document.getElementById('romFile').onchange = function(e) {
         const reader = new FileReader();
-        reader.onload = () => { rom = new Uint8Array(reader.result); document.getElementById('romName').innerText = "ROM: " + e.target.files[0].name; log("ROM Caricata. Pronta per l'analisi."); };
+        reader.onload = () => {
+            rom = new Uint8Array(reader.result);
+            const name = e.target.files[0].name;
+            document.getElementById('romInfo').innerHTML = `✅ ROM caricata: <strong>${name}</strong> (${(rom.length / 1024 / 1024).toFixed(2)} MB)`;
+            log(`ROM "${name}" caricata con successo`, 'success');
+            showToast('ROM caricata con successo!', 'success');
+        };
         reader.readAsArrayBuffer(this.files[0]);
     };
+
+    function hasSyllable(str) {
+        str = str.toUpperCase();
+        return commonSyllables.some(syl => str.includes(syl));
+    }
 
     function isValidText(str, mode) {
         if (!str || str.length < 3) return false;
@@ -85,65 +465,92 @@
             // DEVE AVERE MARCATORI DI DIALOGO
             if (!str.includes('\\n') && !str.includes('\\p') && !str.includes('\\l')) return false;
             
-            // REGOLA "TESTO UMANO": Un dialogo lungo senza spazi è grafica compressa
+            // ANTI-RIPETIZIONI FOLLI: Blocca "RRRRR", "iiiii", "KKRRKRR"
+            if (/(.)\1{4,}/i.test(str)) return false;
+            
+            // ANTI-SEQUENZE ALFABETICHE: "JLNPRTVXZ", "ABCDEFGH"
+            const alphaParts = str.match(/[A-Z]+/gi) || [];
+            for (let part of alphaParts) {
+                if (part.length >= 5) {
+                    let isSequence = true;
+                    for (let i = 0; i < part.length - 1; i++) {
+                        const diff = part.charCodeAt(i + 1) - part.charCodeAt(i);
+                        if (diff !== 1 && diff !== 2) {
+                            isSequence = false;
+                            break;
+                        }
+                    }
+                    if (isSequence) return false; // È una sequenza alfabetica
+                }
+            }
+            
+            // REGOLA "TESTO UMANO": Deve avere spazi
             const spaceCount = (str.match(/ /g) || []).length;
             if (str.length > 25 && spaceCount < 2) return false;
             
-            // REGOLA "ANTI-ENCODING CORROTTO": Se ci sono troppi caratteri accentati è corrotto
+            // ANTI-ENCODING CORROTTO
             const accentCount = (str.match(/[À-ÿ]/g) || []).length;
             const normalLetters = (str.match(/[A-Za-z]/g) || []).length;
-            if (accentCount > normalLetters * 0.3) return false; // Max 30% di accenti
+            if (normalLetters > 0 && accentCount > normalLetters * 0.3) return false;
             
-            // REGOLA "ANTI-GLITCH POTENZIATA": Blocca pattern di caratteri strani
-            if (/[À-ÿ\^~#@]{2,}/.test(str)) return false; // 2+ caratteri strani consecutivi
-            if (/[ËÃ]{2,}/.test(str)) return false; // Pattern tipico di encoding corrotto
+            // ANTI-GLITCH PATTERN
+            if (/[À-ÿ]{2,}/.test(str)) return false;
+            if (/[ËÃ]{2,}/.test(str)) return false;
             
-            // REGOLA "TESTO SENSATO": Deve avere almeno una parola di 4+ lettere
+            // DEVE AVERE PAROLE VERE (con sillabe)
             const words = str.split(/[\s\\]/);
-            const hasRealWord = words.some(w => /^[A-Za-z]{4,}$/.test(w));
+            const hasRealWord = words.some(w => w.length >= 4 && /^[A-Za-z]+$/.test(w) && hasSyllable(w));
             if (!hasRealWord) return false;
+            
+            // ANTI-PATTERN GRAFICI: troppi caratteri maiuscoli consecutivi
+            if (/[A-Z]{15,}/.test(str)) return false;
             
             return true;
         }
 
         if (mode === 'short') {
-            // LUNGHEZZA MASSIMA
-            if (str.length > 18) return false;
+            // LUNGHEZZA
+            if (str.length < 3 || str.length > 18) return false;
             
-            // DEVE ESSERE TUTTO MAIUSCOLO
-            if (str !== str.toUpperCase()) return false; 
+            // MAIUSCOLO PURO
+            if (str !== str.toUpperCase()) return false;
             
-            // NO MARCATORI DI DIALOGO
-            if (str.includes('\\')) return false; 
+            // NO MARCATORI
+            if (str.includes('\\')) return false;
             
-            // REGOLA "PAROLA VERA": Deve avere almeno 3 lettere consecutive
-            if (!/[A-Z]{3,}/.test(str)) return false;
+            // NO SPAZI MULTIPLI
+            if (/  +/.test(str)) return false;
             
-            // REGOLA "NO CARATTERI STRANI"
+            // SOLO CARATTERI VALIDI
             if (/[^A-Z0-9 \.\!\?\-']/.test(str)) return false;
             
-            // REGOLA "VOCALI OBBLIGATORIE": Le parole vere hanno vocali!
-            // Questo blocca "FFFF", "ZZZZZ", "BCX", "KYS", ecc.
-            const hasVowel = /[AEIOU]/.test(str);
-            if (!hasVowel) return false;
+            // VOCALI OBBLIGATORIE
+            if (!/[AEIOU]/.test(str)) return false;
             
-            // REGOLA "ANTI-RIPETIZIONE": Non più di 3 lettere uguali consecutive
-            // Blocca "FFFFF", "AAAAA", ecc.
-            if (/(.)\1{3,}/.test(str)) return false;
+            // ANTI-RIPETIZIONE: Max 2 lettere uguali consecutive
+            if (/(.)\1{2,}/.test(str)) return false;
             
-            // REGOLA "DENSITÀ VOCALE": Deve avere almeno 1 vocale ogni 4 lettere
-            const vowelCount = (str.match(/[AEIOU]/g) || []).length;
-            const letterCount = (str.match(/[A-Z]/g) || []).length;
-            if (letterCount > 3 && vowelCount < letterCount / 4) return false;
+            // DENSITÀ VOCALE
+            const vowels = (str.match(/[AEIOU]/g) || []).length;
+            const letters = (str.match(/[A-Z]/g) || []).length;
+            if (letters > 2 && vowels < letters / 4) return false;
             
-            // REGOLA "NO SEQUENZE ALFABETICHE": Blocca "ABCDE", "FGHIJ", ecc.
+            // ANTI-SEQUENZE ALFABETICHE
             for (let i = 0; i < str.length - 2; i++) {
                 const c1 = str.charCodeAt(i);
                 const c2 = str.charCodeAt(i + 1);
                 const c3 = str.charCodeAt(i + 2);
-                if (c2 === c1 + 1 && c3 === c2 + 1) {
-                    return false; // 3+ lettere consecutive nell'alfabeto
-                }
+                if (c2 === c1 + 1 && c3 === c2 + 1) return false;
+            }
+            
+            // SILLABA REALE: La parola deve contenere almeno UNA sillaba comune
+            if (!hasSyllable(str)) return false;
+            
+            // ANTI-NONSENSE: Le parole troppo corte devono essere conosciute
+            if (str.length <= 4) {
+                const shortWords = ['ITEM', 'BALL', 'MEGA', 'MOVE', 'HOLD', 'BACK', 'EXIT', 'SURF', 'FIRE', 'AQUA', 'ROCK', 'LEAF', 'VOLT'];
+                const hasSpace = str.includes(' ');
+                if (!hasSpace && !shortWords.includes(str) && !hasSyllable(str)) return false;
             }
             
             return true;
@@ -152,16 +559,22 @@
     }
 
     function smartScan() {
-        if(!rom) return alert("Carica la ROM!");
+        if(!rom) {
+            showToast('Carica prima una ROM!', 'error');
+            return;
+        }
+        
         const mode = document.getElementById('extractMode').value;
         const body = document.getElementById('resBody');
         body.innerHTML = "";
         scanResults = [];
-        uniqueStrings.clear(); // Azzera la memoria dei duplicati
-        log(`Scansione in corso per: ${mode}...`);
+        uniqueStrings.clear();
+        
+        log(`🔍 Scansione ${mode === 'short' ? 'Mosse/Oggetti' : 'Dialoghi'} avviata...`);
 
         let i = 0x200000;
         let count = 0;
+        let rejected = 0;
 
         function doScan() {
             let limit = Math.min(i + 0x50000, rom.length);
@@ -173,35 +586,52 @@
                         j++;
                     }
 
-                    // Se il testo è valido E NON è mai stato visto prima
                     if(isValidText(s, mode) && !uniqueStrings.has(s)) {
-                        uniqueStrings.add(s); // Salvalo nella memoria per non ripeterlo
+                        uniqueStrings.add(s);
                         
                         const off = "0x" + i.toString(16).toUpperCase();
                         const bytes = j - i;
                         scanResults.push({o: off, t: s, b: bytes});
-                        if(count < 150) {
-                            body.insertAdjacentHTML('beforeend', `<tr><td class="hex">${off}</td><td>${bytes}</td><td>${s}</td></tr>`);
+                        if(count < 200) {
+                            body.insertAdjacentHTML('beforeend', 
+                                `<tr><td class="hex">${off}</td><td>${bytes}</td><td class="text-cell">${s}</td></tr>`);
                         }
                         count++;
                         i = j;
+                    } else {
+                        rejected++;
                     }
                 }
             }
-            if(i < rom.length - 1) requestAnimationFrame(doScan);
-            else log(`Scansione finita. Trovate ${count} stringhe UNICHE.`);
+            
+            document.getElementById('stats').textContent = `✅ Trovate: ${count} | 🚫 Filtrate: ${rejected}`;
+            
+            if(i < rom.length - 1) {
+                requestAnimationFrame(doScan);
+            } else {
+                log(`✅ Scansione completata: ${count} stringhe valide, ${rejected} filtrate`, 'success');
+                showToast(`Trovate ${count} stringhe valide!`, 'success');
+            }
         }
         doScan();
     }
 
     function exportTxt() {
-        if(scanResults.length === 0) return alert("Nessun dato scansionato!");
+        if(scanResults.length === 0) {
+            showToast('Nessun dato da esportare!', 'error');
+            return;
+        }
+        
         let out = "OFFSET | MAX_BYTE | TESTO\n";
         scanResults.forEach(r => out += `${r.o} | ${r.b} | ${r.t}\n`);
+        
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([out], {type:'text/plain'}));
-        a.download = `Traduzione_${document.getElementById('extractMode').value}.txt`;
+        a.download = `Traduzione_${document.getElementById('extractMode').value}_${Date.now()}.txt`;
         a.click();
+        
+        log(`📥 File esportato: ${scanResults.length} righe`, 'success');
+        showToast('File TXT scaricato!', 'success');
     }
 
     function findFreeSpace(needed) {
@@ -228,10 +658,14 @@
 
     async function applyPatch() {
         const file = document.getElementById('txtFile').files[0];
-        if(!file || !rom) return alert("Manca la ROM o il TXT.");
+        if(!file || !rom) {
+            showToast('Manca la ROM o il TXT!', 'error');
+            return;
+        }
+        
         const lines = (await file.text()).split('\n');
         let d = 0, r = 0;
-        log("Patching in corso...");
+        log("⚡ Patching in corso...");
 
         lines.forEach(line => {
             if(!line.includes('|') || line.startsWith('OFFSET')) return;
@@ -247,7 +681,7 @@
                 }
                 bytes.push(invMap[text[k]] !== undefined ? invMap[text[k]] : 0x00);
             }
-            bytes.push(0xFF); // Terminatore
+            bytes.push(0xFF);
 
             if(bytes.length <= maxB + 1) {
                 rom.set(bytes, oldOff);
@@ -262,11 +696,14 @@
             }
         });
 
-        log(`Patch terminata! Parole sovrascritte: ${d} | Spostate: ${r}`);
+        log(`✅ Patch applicata! Sovrascritte: ${d} | Riposizionate: ${r}`, 'success');
+        
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([rom], {type:'application/octet-stream'}));
-        a.download = "Pokemon_Smeraldo_ITA.gba";
+        a.download = "Pokemon_Tradotto_ITA.gba";
         a.click();
+        
+        showToast('ROM patchata scaricata!', 'success');
     }
 </script>
 </body>
