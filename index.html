@@ -356,6 +356,60 @@
         .report-item:last-child {
             border-bottom: none;
         }
+
+        /* PROGRESS BAR */
+        .progress-wrap {
+            margin-top: 1rem;
+            display: none;
+        }
+        .progress-wrap.active { display: block; }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.4rem;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 12px;
+            background: var(--bg-secondary);
+            border-radius: 999px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--accent), #8b5cf6);
+            transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            to { left: 200%; }
+        }
+
+        .progress-phase {
+            font-size: 0.75rem;
+            color: var(--accent);
+            margin-top: 0.3rem;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -389,6 +443,18 @@
             Avvia Scansione Ultra-Precisa
         </button>
         
+        <!-- PROGRESS BAR SCANSIONE -->
+        <div class="progress-wrap" id="scanProgressWrap">
+            <div class="progress-label">
+                <span>Scansione ROM in corso...</span>
+                <span id="scanPct">0%</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" id="scanFill"></div>
+            </div>
+            <div class="progress-phase" id="scanPhase">Inizializzazione...</div>
+        </div>
+        
         <div class="preview-container">
             <div class="preview-header">
                 <div class="preview-stats" id="stats">Nessun dato</div>
@@ -419,6 +485,19 @@
         <button class="btn-success" onclick="applyPatch()" id="patchBtn">
             Patchare ROM con Validazione
         </button>
+
+        <!-- PROGRESS BAR PATCH -->
+        <div class="progress-wrap" id="patchProgressWrap">
+            <div class="progress-label">
+                <span>Applicazione patch...</span>
+                <span id="patchPct">0%</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" id="patchFill"></div>
+            </div>
+            <div class="progress-phase" id="patchPhase">Lettura file...</div>
+        </div>
+
         <div id="patchReport"></div>
     </div>
 
@@ -510,16 +589,16 @@
 
         if (mode === 'dialogs') {
             // LUNGHEZZA MINIMA
-            if (str.length < 25) return false; // Aumentato da 20 a 25
+            if (str.length < 15) return false;
             
             // DEVE AVERE MARCATORI DI DIALOGO
             if (!str.includes('\\n') && !str.includes('\\p') && !str.includes('\\l')) return false;
             
-            // ANTI-RIPETIZIONI PATTERN ULTRA: Blocca pattern ripetuti
+            // ANTI-RIPETIZIONI PATTERN ULTRA
             if (/(.{2,4})\1{2,}/i.test(str)) return false;
-            if (/(.)\1{3,}/i.test(str)) return false; // 4+ lettere uguali (era 5+)
+            if (/(.)\1{3,}/i.test(str)) return false;
             
-            // ANTI-RIPETIZIONI TRIPLE: "AAA", "RRR", "EEE"
+            // ANTI-RIPETIZIONI TRIPLE
             if (/([A-Z])\1{2,}/i.test(str)) return false;
             
             // ANTI-SEQUENZE ALFABETICHE
@@ -529,49 +608,54 @@
                     let isSequence = true;
                     for (let i = 0; i < part.length - 1; i++) {
                         const diff = part.charCodeAt(i + 1) - part.charCodeAt(i);
-                        if (diff !== 1 && diff !== 2) {
-                            isSequence = false;
-                            break;
-                        }
+                        if (diff !== 1 && diff !== 2) { isSequence = false; break; }
                     }
                     if (isSequence) return false;
                 }
             }
             
-            // REGOLA SPAZI: Deve avere almeno 4 spazi (era 3)
-            const spaceCount = (str.match(/ /g) || []).length;
-            if (str.length > 25 && spaceCount < 4) return false;
-            
-            // ANTI-ENCODING CORROTTO (più restrittivo)
+            // ANTI-ENCODING CORROTTO
             const accentCount = (str.match(/[À-ÿ]/g) || []).length;
             const normalLetters = (str.match(/[A-Za-z]/g) || []).length;
-            if (normalLetters > 0 && accentCount > normalLetters * 0.15) return false; // 20% -> 15%
+            if (normalLetters > 0 && accentCount > normalLetters * 0.15) return false;
             
             // ANTI-GLITCH PATTERN POTENZIATO
             if (/[À-ÿ]{2,}/.test(str)) return false;
             if (/[ËÃ]{2,}/.test(str)) return false;
-            if (/Ã["\w]/.test(str)) return false; // Blocca pattern "Ã + carattere"
-            if (/[Å']["\w]/.test(str)) return false; // Blocca pattern "Å' + carattere"
-            if (/[Ã™Ã"Ã‚Ã‰Ã‹]/.test(str)) return false; // Blocca questi caratteri corrotti specifici
-            
-            // DEVE AVERE ALMENO 4 PAROLE VERE (era 3)
-            const words = str.split(/[\s\\]/);
-            const realWords = words.filter(w => w.length >= 4 && /^[A-Za-z]+$/.test(w) && countSyllables(w) >= 1);
-            if (realWords.length < 4) return false;
+            if (/Ã[^\s]/.test(str)) return false;
+            if (/[Å'][^\s]/.test(str)) return false;
             
             // ANTI-PATTERN GRAFICI
-            if (/[A-Z]{18,}/.test(str)) return false; // 20 -> 18
-            
-            // DEVE AVERE VOCALI DISTRIBUITE (più restrittivo)
-            const vowelCount = (str.match(/[AEIOUaeiou]/g) || []).length;
-            if (normalLetters > 0 && vowelCount < normalLetters * 0.30) return false; // 25% -> 30%
+            if (/[A-Z]{18,}/.test(str)) return false;
             
             // ANTI-CONSONANTI CONSECUTIVE ECCESSIVE
             if (/[BCDFGHJKLMNPQRSTVWXYZ]{5,}/.test(str)) return false;
             
-            // BLOCCA STRINGHE CON TROPPE MAIUSCOLE SINGOLE: "B A C D"
+            // BLOCCA MAIUSCOLE SINGOLE SPARSE: "B A C D"
             const singleCaps = str.match(/\b[A-Z]\b/g) || [];
-            if (singleCaps.length > 3) return false;
+            if (singleCaps.length > 4) return false;
+            
+            // ─── LOGICA ADATTIVA ────────────────────────────────────────
+            // CASO A: Dialogo con prefisso personaggio tipo "MOM: ..." o "PROF: ..."
+            const hasNamePrefix = /^[A-Z][A-Za-z]{1,8}[\s:]/.test(str);
+            
+            // CASO B: Dialogo lungo (>35 chars)
+            const isLong = str.length > 35;
+            
+            // SPAZI RICHIESTI: 2 per dialoghi corti/con nome, 3 per quelli lunghi
+            const spaceCount = (str.match(/ /g) || []).length;
+            const minSpaces = (hasNamePrefix || !isLong) ? 2 : 3;
+            if (spaceCount < minSpaces) return false;
+            
+            // VOCALI DISTRIBUITE
+            const vowelCount = (str.match(/[AEIOUaeiou]/g) || []).length;
+            if (normalLetters > 0 && vowelCount < normalLetters * 0.25) return false;
+            
+            // PAROLE REALI: 2 per dialoghi brevi con nome, 3 per quelli lunghi
+            const words = str.split(/[\s\\,!?.]/);
+            const realWords = words.filter(w => w.length >= 3 && /^[A-Za-z]+$/.test(w) && countSyllables(w) >= 1);
+            const minWords = (hasNamePrefix || !isLong) ? 2 : 3;
+            if (realWords.length < minWords) return false;
             
             return true;
         }
@@ -632,14 +716,32 @@
         scanResults = [];
         uniqueStrings.clear();
         
+        // Mostra progress bar
+        const wrap = document.getElementById('scanProgressWrap');
+        const fill = document.getElementById('scanFill');
+        const pct  = document.getElementById('scanPct');
+        const phase = document.getElementById('scanPhase');
+        wrap.classList.add('active');
+        fill.style.width = '0%';
+        
         log(`🔍 Scansione ${mode === 'short' ? 'Mosse/Oggetti' : 'Dialoghi'} avviata (filtro ULTRA)...`);
 
-        let i = 0x200000;
+        const START = 0x200000;
+        const END   = rom.length;
+        let i = START;
         let count = 0;
         let rejected = 0;
 
+        function updateProgress() {
+            const progress = Math.min(100, ((i - START) / (END - START)) * 100);
+            fill.style.width = progress.toFixed(1) + '%';
+            pct.textContent  = progress.toFixed(0) + '%';
+            const mb = (i / 1024 / 1024).toFixed(1);
+            phase.textContent = `Offset 0x${i.toString(16).toUpperCase()} — ${mb} MB — ✅ ${count} trovate`;
+        }
+
         function doScan() {
-            let limit = Math.min(i + 0x50000, rom.length);
+            let limit = Math.min(i + 0x50000, END);
             for(; i < limit; i++) {
                 if(rom[i] >= 0xBB && rom[i] <= 0xD4) {
                     let s = "", j = i;
@@ -650,7 +752,6 @@
 
                     if(isValidText(s, mode) && !uniqueStrings.has(s)) {
                         uniqueStrings.add(s);
-                        
                         const off = "0x" + i.toString(16).toUpperCase();
                         const bytes = j - i;
                         scanResults.push({o: off, t: s, b: bytes});
@@ -666,13 +767,18 @@
                 }
             }
             
+            updateProgress();
             document.getElementById('stats').textContent = `✅ Valide: ${count} | 🚫 Filtrate: ${rejected}`;
             
-            if(i < rom.length - 1) {
+            if(i < END - 1) {
                 requestAnimationFrame(doScan);
             } else {
+                fill.style.width = '100%';
+                pct.textContent = '100%';
+                phase.textContent = `✅ Completata! ${count} stringhe valide trovate.`;
                 log(`✅ Scansione completata: ${count} stringhe valide, ${rejected} filtrate`, 'success');
                 showToast(`Trovate ${count} stringhe valide!`, 'success');
+                setTimeout(() => wrap.classList.remove('active'), 4000);
             }
         }
         doScan();
@@ -789,137 +895,119 @@
 
         const btn = document.getElementById('patchBtn');
         btn.disabled = true;
-        btn.textContent = 'Patching in corso...';
 
-        const lines = (await file.text()).split('\n');
+        // Mostra progress bar patch
+        const wrap  = document.getElementById('patchProgressWrap');
+        const fill  = document.getElementById('patchFill');
+        const pct   = document.getElementById('patchPct');
+        const phase = document.getElementById('patchPhase');
+        wrap.classList.add('active');
+        fill.style.width = '0%';
+        pct.textContent  = '0%';
+        phase.textContent = 'Lettura file TXT...';
+
+        const lines = (await file.text()).split('\n').filter(l => l.includes('|') && !l.startsWith('OFFSET'));
+        const total = lines.length;
         
-        let stats = {
-            total: 0,
-            overwritten: 0,
-            repointed: 0,
-            failed: 0,
-            protected: 0,
-            errors: []
-        };
+        let stats = { total: 0, overwritten: 0, repointed: 0, failed: 0, protected: 0, errors: [] };
 
         log('⚡ Avvio patching con validazione sicura...', 'info');
+        document.getElementById('patchReport').innerHTML = '';
 
-        for (let line of lines) {
-            if (!line.includes('|') || line.startsWith('OFFSET')) continue;
-            
-            const parts = line.split('|').map(s => s.trim());
-            if (parts.length < 3) continue;
+        // Processo a blocchi per non bloccare la UI e aggiornare la progress bar
+        let idx = 0;
 
-            const [offsetStr, maxByteStr, text] = parts;
-            const oldOffset = parseInt(offsetStr, 16);
-            const maxBytes = parseInt(maxByteStr);
+        function processChunk() {
+            const chunkEnd = Math.min(idx + 20, total);
 
-            // PROTEZIONE HEADER
-            if (oldOffset < 0x200000) {
-                stats.protected++;
-                log(`⚠️ PROTETTO: ${offsetStr} (area critica)`, 'warning');
-                stats.errors.push(`${offsetStr}: Area protetta`);
-                continue;
-            }
+            for (; idx < chunkEnd; idx++) {
+                const line = lines[idx];
+                const parts = line.split('|').map(s => s.trim());
+                if (parts.length < 3) continue;
 
-            stats.total++;
+                const [offsetStr, maxByteStr, text] = parts;
+                const oldOffset = parseInt(offsetStr, 16);
+                const maxBytes  = parseInt(maxByteStr);
 
-            // CALCOLA LUNGHEZZA REALE
-            const newBytes = textToBytes(text);
-            const newLength = newBytes.length;
-
-            try {
-                if (newLength <= maxBytes + 1) {
-                    // SOVRASCRIVI IN LOCO
-                    rom.set(newBytes, oldOffset);
-                    
-                    // RIEMPI SPAZIO RIMANENTE CON 0xFF
-                    const remaining = (maxBytes + 1) - newLength;
-                    if (remaining > 0) {
-                        const fillBytes = new Uint8Array(remaining).fill(0xFF);
-                        rom.set(fillBytes, oldOffset + newLength);
-                    }
-                    
-                    stats.overwritten++;
-                } else {
-                    // REPOINTING NECESSARIO
-                    const newOffset = findFreeSpace(newLength);
-                    
-                    if (newOffset === -1) {
-                        stats.failed++;
-                        log(`❌ ERRORE: ${offsetStr} - Spazio insufficiente (${newLength} bytes)`, 'error');
-                        stats.errors.push(`${offsetStr}: Spazio insufficiente`);
-                        continue;
-                    }
-
-                    // Scrivi nel nuovo spazio
-                    rom.set(newBytes, newOffset);
-                    
-                    // Aggiorna puntatori
-                    const ptrCount = repointPointers(oldOffset, newOffset);
-                    
-                    if (ptrCount > 0) {
-                        stats.repointed++;
-                        log(`🔀 REPOINT: ${offsetStr} → 0x${newOffset.toString(16).toUpperCase()} (${ptrCount} puntatori)`, 'success');
-                    } else {
-                        log(`⚠️ WARNING: ${offsetStr} repointed ma nessun puntatore trovato`, 'warning');
-                        stats.repointed++;
-                    }
+                // PROTEZIONE HEADER
+                if (isNaN(oldOffset) || oldOffset < 0x200000) {
+                    stats.protected++;
+                    log(`⚠️ PROTETTO: ${offsetStr} (area critica < 0x200000)`, 'warning');
+                    continue;
                 }
-            } catch (error) {
-                stats.failed++;
-                log(`❌ ERRORE: ${offsetStr} - ${error.message}`, 'error');
-                stats.errors.push(`${offsetStr}: ${error.message}`);
+
+                stats.total++;
+                const newBytes = textToBytes(text);
+                const newLength = newBytes.length;
+
+                try {
+                    if (newLength <= maxBytes + 1) {
+                        // SOVRASCRIVI IN LOCO + padding 0xFF
+                        rom.set(newBytes, oldOffset);
+                        const remaining = (maxBytes + 1) - newLength;
+                        if (remaining > 0) rom.set(new Uint8Array(remaining).fill(0xFF), oldOffset + newLength);
+                        stats.overwritten++;
+                    } else {
+                        // REPOINTING
+                        const newOffset = findFreeSpace(newLength);
+                        if (newOffset === -1) {
+                            stats.failed++;
+                            log(`❌ SPAZIO INSUFFICIENTE: ${offsetStr} (servono ${newLength} bytes)`, 'error');
+                            stats.errors.push(`${offsetStr}: Spazio insufficiente`);
+                            continue;
+                        }
+                        rom.set(newBytes, newOffset);
+                        const ptrCount = repointPointers(oldOffset, newOffset);
+                        stats.repointed++;
+                        if (ptrCount === 0) log(`⚠️ REPOINT: ${offsetStr} → 0x${newOffset.toString(16).toUpperCase()} (nessun puntatore trovato)`, 'warning');
+                        else log(`🔀 REPOINT: ${offsetStr} → 0x${newOffset.toString(16).toUpperCase()} (${ptrCount} ptr aggiornati)`, 'success');
+                    }
+                } catch (error) {
+                    stats.failed++;
+                    stats.errors.push(`${offsetStr}: ${error.message}`);
+                }
+            }
+
+            // Aggiorna progress bar
+            const progress = total > 0 ? Math.min(100, (idx / total) * 100) : 100;
+            fill.style.width = progress.toFixed(1) + '%';
+            pct.textContent  = progress.toFixed(0) + '%';
+            phase.textContent = `Stringa ${idx}/${total} — ✅ ${stats.overwritten} in loco | 🔀 ${stats.repointed} repoint | ❌ ${stats.failed} errori`;
+
+            if (idx < total) {
+                requestAnimationFrame(processChunk);
+            } else {
+                // ─── FINE PATCHING ────────────────────────────────────
+                fill.style.width = '100%';
+                pct.textContent  = '100%';
+                phase.textContent = '✅ Patch completata!';
+
+                document.getElementById('patchReport').innerHTML = `
+                    <div class="patch-report">
+                        <h3 style="color: var(--success); margin-bottom: 1rem;">📊 Report Patching</h3>
+                        <div class="report-item"><span>Stringhe processate:</span><strong>${stats.total}</strong></div>
+                        <div class="report-item"><span>✅ Sovrascritte in loco:</span><strong style="color:var(--success)">${stats.overwritten}</strong></div>
+                        <div class="report-item"><span>🔀 Riposizionate (repoint):</span><strong style="color:var(--accent)">${stats.repointed}</strong></div>
+                        <div class="report-item"><span>🛡️ Protette (header):</span><strong style="color:var(--warning)">${stats.protected}</strong></div>
+                        <div class="report-item"><span>❌ Fallite (spazio):</span><strong style="color:var(--danger)">${stats.failed}</strong></div>
+                        ${stats.errors.length > 0 ? `<div style="margin-top:.5rem;font-size:.75rem;color:var(--danger)">Errori: ${stats.errors.join(' | ')}</div>` : ''}
+                    </div>`;
+
+                log(`✅ Patch completata! Successo: ${stats.overwritten + stats.repointed}/${stats.total}`, 'success');
+                if (stats.failed > 0) log(`⚠️ ${stats.failed} stringhe non scritte per mancanza di spazio`, 'warning');
+
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(new Blob([rom], {type:'application/octet-stream'}));
+                a.download = 'Pokemon_Tradotto_SAFE.gba';
+                a.click();
+
+                showToast('ROM patchata scaricata!', 'success');
+                btn.disabled = false;
+                btn.textContent = 'Patchare ROM con Validazione';
             }
         }
 
-        // REPORT FINALE
-        const reportHtml = `
-            <div class="patch-report">
-                <h3 style="color: var(--success); margin-bottom: 1rem;">📊 Report Patching</h3>
-                <div class="report-item">
-                    <span>Stringhe totali:</span>
-                    <strong>${stats.total}</strong>
-                </div>
-                <div class="report-item">
-                    <span>✅ Sovrascritte in loco:</span>
-                    <strong style="color: var(--success)">${stats.overwritten}</strong>
-                </div>
-                <div class="report-item">
-                    <span>🔀 Riposizionate (repoint):</span>
-                    <strong style="color: var(--accent)">${stats.repointed}</strong>
-                </div>
-                <div class="report-item">
-                    <span>🛡️ Protette (header):</span>
-                    <strong style="color: var(--warning)">${stats.protected}</strong>
-                </div>
-                <div class="report-item">
-                    <span>❌ Fallite:</span>
-                    <strong style="color: var(--danger)">${stats.failed}</strong>
-                </div>
-            </div>
-        `;
-
-        document.getElementById('patchReport').innerHTML = reportHtml;
-
-        log('✅ Patching completato!', 'success');
-        log(`📈 Successo: ${stats.overwritten + stats.repointed}/${stats.total}`, 'success');
-        
-        if (stats.failed > 0) {
-            log(`⚠️ ${stats.failed} stringhe fallite per spazio insufficiente`, 'warning');
-        }
-
-        // DOWNLOAD ROM PATCHATA
-        const blob = new Blob([rom], { type: 'application/octet-stream' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'Pokemon_Tradotto_SAFE.gba';
-        a.click();
-
-        showToast('ROM patchata scaricata con successo!', 'success');
-        
-        btn.disabled = false;
-        btn.textContent = 'Patchare ROM con Validazione';
+        processChunk();
     }
 </script>
 </body>
