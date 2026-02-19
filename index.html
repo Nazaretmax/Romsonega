@@ -83,6 +83,16 @@
             cursor: pointer;
         }
 
+        input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+            accent-color: var(--accent);
+        }
+
+        label {
+            user-select: none;
+        }
+
         button {
             font-weight: 600;
             background: var(--accent);
@@ -345,9 +355,17 @@
     <div class="section">
         <div class="section-title">🔍 Estrazione</div>
         <select id="extractMode">
-            <option value="short">⚔️ Mosse/Oggetti</option>
-            <option value="dialogs">💬 Dialoghi</option>
+            <option value="short">⚔️ Mosse/Oggetti (parole singole)</option>
+            <option value="dialogs">💬 Dialoghi (filtro medio)</option>
+            <option value="all">🌐 TUTTO il testo (nessun filtro)</option>
         </select>
+        <div style="font-size:0.7rem;color:var(--text-dim);margin-top:0.25rem;padding:0.375rem;background:var(--bg);border-radius:0.25rem;border-left:2px solid var(--accent)">
+            💡 <strong>Consiglio:</strong> Usa modalità "TUTTO" + checkbox inglese per estrarre solo testo non tradotto
+        </div>
+        <label style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;font-size:0.8rem;cursor:pointer">
+            <input type="checkbox" id="englishOnly" style="width:auto">
+            <span>Estrai solo testo inglese (🇬🇧 rilevamento automatico)</span>
+        </label>
         <button onclick="scan()">Scansiona ROM</button>
         
         <div class="progress" id="scanProgress">
@@ -421,6 +439,24 @@
     const blockedSounds = ['HA','HE','HI','HO','HU','BA','BE','BI','BO','BU','RA','RE','RI','RO','RU','FO','FA','FU','FE','FI','LA','LE','LI','LO','LU','WA','WE','WI','WO','WU','YA','YE','YI','YO','YU','ZA','ZE','ZI','ZO','ZU','HAHA','HOHO','HEHE','HIHI','BABA','BOBO','RARA','RORO','WAWA','WOWO','YAYA','YOYO','GAGA','GOGO','CATT','MEO','DU','TU','GU','NU','MU','SU','CU','PU'];
     
     const knownWords = ['ITEM','BALL','MEGA','MOVE','HOLD','BACK','EXIT','SURF','FIRE','AQUA','ROCK','LEAF','VOLT','BOLT','STAR','MOON','STONE','WATER','GRASS','TOXIC','STEEL','BURN','FREEZE','SLEEP','DRAGON','GHOST','FAIRY','FIGHT','GROUND','FLYING','POISON','NORMAL','PSYCHIC','SUPER','HYPER','MAX','FULL','HEAL','CURE','FRESH','GUARD','POTION','ELIXIR','ETHER','REVIVE','ESCAPE','ROPE','REPEL','BADGE','CASE','BIKE','COIN','GOOD','GREAT','ULTRA','MASTER','SAFARI','LEVEL','LUXURY','NEST','NET','DIVE','TIMER','REPEAT','PREMIER','DUSK','QUICK','ATTACK','DEFENSE','SPECIAL','SPEED','ACCURACY','EVASION','CRITICAL'];
+    
+    // Parole comuni inglesi per rilevamento lingua
+    const englishWords = ['THE','AND','YOU','THAT','WAS','FOR','ARE','WITH','HIS','THEY','THIS','HAVE','FROM','ONE','HAD','BUT','WHAT','ALL','WERE','WHEN','YOUR','CAN','SAID','THERE','USE','EACH','WHICH','SHE','HOW','THEIR','WILL','OTHER','ABOUT','OUT','MANY','THEN','THEM','THESE','SOME','HER','WOULD','MAKE','LIKE','HIM','INTO','TIME','HAS','LOOK','TWO','MORE','WRITE','SEE','NUMBER','WAY','COULD','PEOPLE','THAN','FIRST','BEEN','CALL','WHO','OIL','NOW','FIND','LONG','DOWN','DAY','DID','GET','COME','MADE','MAY','PART','OVER','NEW','SOUND','TAKE','ONLY','LITTLE','WORK','KNOW','PLACE','YEAR','LIVE','BACK','GIVE','MOST','VERY','AFTER','THING','OUR','JUST','NAME','GOOD','SENTENCE','MAN','THINK','SAY','GREAT','WHERE','HELP','THROUGH','MUCH','BEFORE','LINE','RIGHT','TOO','MEAN','OLD','ANY','SAME','TELL','FOLLOW','CAME','WANT','SHOW','ALSO','AROUND','FORM','THREE','SMALL','SET','PUT','END','WHY','ASKED','WENT','MEN','READ','NEED','LAND','DIFFERENT','HOME','MOVE','TRY','KIND','HAND','PICTURE','AGAIN','CHANGE','OFF','PLAY','SPELL','AIR','AWAY','ANIMAL','HOUSE','POINT','PAGE','LETTER','MOTHER','ANSWER','FOUND','STUDY','STILL','LEARN','SHOULD','WORLD','HIGH','EVERY','NEAR','ADD','FOOD','BETWEEN','OWN','BELOW','COUNTRY','PLANT','LAST','SCHOOL','FATHER','KEEP','TREE','NEVER','START','CITY','EARTH','EYE','LIGHT','THOUGHT','HEAD','UNDER','STORY','SAW','LEFT','FEW','WHILE','ALONG','MIGHT','CLOSE','SOMETHING','SEEM','NEXT','HARD','OPEN','EXAMPLE','BEGIN','LIFE','ALWAYS','THOSE','BOTH','PAPER','TOGETHER','GOT','GROUP','OFTEN','RUN','IMPORTANT','UNTIL','CHILDREN','SIDE','FEET','CAR','MILE','NIGHT','WALK','WHITE','SEA','BEGAN','GROW','TOOK','RIVER','FOUR','CARRY','STATE','ONCE','BOOK','HEAR','STOP','WITHOUT','SECOND','LATER','MISS','IDEA','ENOUGH','EAT','FACE','WATCH','FAR','INDIAN','REAL','ALMOST','LET','ABOVE','GIRL','SOMETIMES','MOUNTAIN','CUT','YOUNG','TALK','SOON','LIST','SONG','LEAVE','FAMILY','BODY','MUSIC','COLOR','STAND','SUN','QUESTIONS','FISH','AREA','MARK','DOG','HORSE','BIRD','PROBLEM','COMPLETE','ROOM','KNEW','SINCE','EVER','PIECE','TOLD','USUALLY','DIDN','FRIENDS','EASY','HEARD','ORDER','RED','DOOR','SURE','BECOME','TOP','SHIP','ACROSS','TODAY','DURING','SHORT','BETTER','BEST','HOWEVER','LOW','HOURS','BLACK','PRODUCTS','HAPPENED','WHOLE','MEASURE','REMEMBER','EARLY','WAVES','REACHED','LISTEN','WIND','ROCK','SPACE','COVERED','FAST','SEVERAL','HOLD','HIMSELF','TOWARD','FIVE','STEP','MORNING','PASSED','VOWEL','TRUE','HUNDRED','AGAINST','PATTERN','NUMERAL','TABLE','NORTH','SLOWLY','MONEY','MAP','FARM','PULLED','DRAW','VOICE','SEEN','COLD','CRIED','PLAN','NOTICE','SOUTH','SING','WAR','GROUND','FALL','KING','TOWN','UNIT','FIGURE','CERTAIN','FIELD','TRAVEL','WOOD','FIRE','UPON','DONE','ENGLISH','ROAD','HALF','TEN','FLY','GAVE','BOX','FINALLY','WAIT','CORRECT','GAME','SPECIAL','HEAVY','FINE','PAIR','CIRCLE','INCLUDE','BUILT','CANT','MATTER','SQUARE','SYLLABLES','PERHAPS','BILL','FELT','SUDDENLY','TEST','DIRECTION','CENTER','FARMERS','READY','ANYTHING','DIVIDED','GENERAL','ENERGY','SUBJECT','EUROPE','MOON','REGION','RETURN','BELIEVE','DANCE','MEMBERS','PICKED','SIMPLE','CELLS','PAINT','MIND','LOVE','CAUSE','RAIN','EXERCISE','EGGS','TRAIN','BLUE','WISH','DROP','DEVELOPED','WINDOW','DIFFERENCE','DISTANCE','HEART','SITE','SUM','SUMMER','WALL','FOREST','PROBABLY','LEGS','SAT','MAIN','WINTER','WIDE','WRITTEN','LENGTH','REASON','KEPT','INTEREST','ARMS','BROTHER','RACE','PRESENT','BEAUTIFUL','STORE','JOB','EDGE','PAST','SIGN','RECORD','FINISHED','DISCOVERED','WILD','HAPPY','BESIDE','GONE','PLANE','INSTEAD','THOUGH','YELLOW','HUGE','STREAM','BORN','LABOR','SHOES','LOUD','RIDING','ALREADY','STRANGE','CAUGHT','FELL','TEAM','GOD','CAPTAIN','DIRECT','RING','SERVE','CHILD','DESERT','INCREASE','HISTORY','COST','MAYBE','BUSINESS','SEPARATE','BREAK','UNCLE','HUNTING','FLOW','LADY','STUDENTS','HUMAN','ART','FEELING','SUPPLY','CORNER','ELECTRIC','INSECTS','CROPS','TONE','HIT','SAND','DOCTOR','PROVIDE','THUS','WONT','COOK','BONES','TAIL','BOARD','MODERN','COMPOUND','MINE','WASNT','FIT','ADDITION','BELONG','SAFE','SOLDIERS','GUESS','CHOSEN','FEAR','WORKERS','WASHINGTON','GREEK','WOMEN','BOUGHT','LED','MARCH','NORTHERN','CREATE','BRITISH','DIFFICULT','MATCH','WIN','DOESNT','STEEL','TOTAL','DEAL','DETERMINE','EVENING','NOR','ROPE','COTTON','APPLE','DETAILS','ENTIRE','CORN','SUBSTANCES','SMELL','TOOLS','CONDITIONS','COWS','TRACK','ARRIVED','LOCATED','SIR','SEAT','DIVISION','EFFECT','UNDERLINE','FIRE','TROUBLE','PARTY','BUILD','EXPECT','STAY','GREEN','KNOWN','ISLAND','WEEK','LESS','MACHINE','BASE','AGO','STOOD','PLANE','SYSTEM','BEHIND','RAN','ROUND','BOAT','GAME','FORCE','BROUGHT','UNDERSTAND','WARM','COMMON','BRING','EXPLAIN','DRY','THOUGH','LANGUAGE','SHAPE','DEEP','THOUSANDS','YES','CLEAR','EQUATION','YET','GOVERNMENT','FILLED','HEAT','FULL','HOT','CHECK','OBJECT','AM','RULE','AMONG','NOUN','POWER','CANNOT','ABLE','SIX','SIZE','DARK','BALL','MATERIAL','SPECIAL','HEAVY','FINE','PAIR','CIRCLE','INCLUDE','BUILT'];
+    
+    // Rileva se il testo è inglese
+    function isEnglish(str) {
+        const upperStr = str.toUpperCase();
+        const words = upperStr.split(/[\s\\\.,!?;\-]+/).filter(w => w.length >= 2);
+        
+        // Conta quante parole inglesi comuni ci sono
+        let englishCount = 0;
+        for (let word of words) {
+            if (englishWords.includes(word)) englishCount++;
+        }
+        
+        // Se almeno 25% delle parole sono inglesi comuni, è inglese
+        return words.length > 0 && englishCount >= Math.max(1, words.length * 0.25);
+    }
     
     let rom = null;
     let scanResults = [];
@@ -604,59 +640,62 @@
     function isValidText(str, mode) {
         if (!str || str.length < 3) return false;
 
-        if (mode === 'dialogs') {
-            if (str.length < 15) return false;
-            if (!str.includes('\\n') && !str.includes('\\p') && !str.includes('\\l')) return false;
-            if (/(.{2,4})\1{2,}/i.test(str)) return false;
-            if (/(.)\1{3,}/i.test(str)) return false;
-            if (/([A-Z])\1{2,}/i.test(str)) return false;
+        // MODALITÀ ALL - Accetta quasi tutto
+        if (mode === 'all') {
+            // Solo filtri anti-garbage estremi
+            if (str.length < 3) return false;
             
-            const alphaParts = str.match(/[A-Z]+/gi) || [];
-            for (let part of alphaParts) {
-                if (part.length >= 5) {
-                    let isSeq = true;
-                    for (let i = 0; i < part.length - 1; i++) {
-                        const diff = part.charCodeAt(i + 1) - part.charCodeAt(i);
-                        if (diff !== 1 && diff !== 2) { isSeq = false; break; }
-                    }
-                    if (isSeq) return false;
-                }
-            }
+            // Deve avere almeno QUALCHE lettera
+            if (!/[A-Za-z]/.test(str)) return false;
             
+            // Anti-encoding corrotto estremo
             const accentCount = (str.match(/[À-ÿ]/g) || []).length;
             const normalLetters = (str.match(/[A-Za-z]/g) || []).length;
-            if (normalLetters > 0 && accentCount > normalLetters * 0.15) return false;
+            if (normalLetters > 0 && accentCount > normalLetters * 0.5) return false;
             
-            if (/[À-ÿ]{2,}/.test(str)) return false;
-            if (/[ËÃ]{2,}/.test(str)) return false;
-            if (/Ã[^\s]/.test(str)) return false;
-            if (/[Å'][^\s]/.test(str)) return false;
-            if (/[A-Z]{18,}/.test(str)) return false;
-            if (/[BCDFGHJKLMNPQRSTVWXYZ]{5,}/.test(str)) return false;
-            
-            const singleCaps = str.match(/\b[A-Z]\b/g) || [];
-            if (singleCaps.length > 4) return false;
-            
-            const hasNamePrefix = /^[A-Z][A-Za-z]{1,8}[\s:]/.test(str);
-            const isLong = str.length > 35;
-            
-            const spaceCount = (str.match(/ /g) || []).length;
-            const minSpaces = (hasNamePrefix || !isLong) ? 2 : 3;
-            if (spaceCount < minSpaces) return false;
-            
-            const vowelCount = (str.match(/[AEIOUaeiou]/g) || []).length;
-            if (normalLetters > 0 && vowelCount < normalLetters * 0.25) return false;
-            
-            const words = str.split(/[\s\\,!?.]/);
-            const realWords = words.filter(w => w.length >= 3 && /^[A-Za-z]+$/.test(w) && countSyllables(w) >= 1);
-            const minWords = (hasNamePrefix || !isLong) ? 2 : 3;
-            if (realWords.length < minWords) return false;
+            // Anti-pattern grafici totali
+            if (/[À-ÿ]{3,}/.test(str)) return false;
+            if (/(.)\1{6,}/.test(str)) return false; // 7+ ripetizioni
             
             return true;
         }
 
+        // DIALOGHI - FILTRO LEGGERO
+        if (mode === 'dialogs') {
+            // Lunghezza minima RIDOTTA
+            if (str.length < 10) return false; // Era 15
+            
+            // Accetta dialoghi CON o SENZA marcatori se abbastanza lunghi
+            const hasMarkers = str.includes('\\n') || str.includes('\\p') || str.includes('\\l');
+            if (!hasMarkers && str.length < 20) return false;
+            
+            // Anti-ripetizioni base
+            if (/(.)\1{5,}/.test(str)) return false; // 6+ lettere uguali
+            
+            // Anti-encoding corrotto (più permissivo)
+            const accentCount = (str.match(/[À-ÿ]/g) || []).length;
+            const normalLetters = (str.match(/[A-Za-z]/g) || []).length;
+            if (normalLetters > 0 && accentCount > normalLetters * 0.25) return false; // Era 0.15
+            
+            // Anti-glitch pattern base
+            if (/[À-ÿ]{3,}/.test(str)) return false;
+            if (/[ËÃ]{2,}/.test(str)) return false;
+            
+            // Vocali minime
+            const vowelCount = (str.match(/[AEIOUaeiou]/g) || []).length;
+            if (normalLetters > 5 && vowelCount < normalLetters * 0.20) return false; // Era 0.25
+            
+            // Almeno 1 parola di 3+ lettere
+            const words = str.split(/[\s\\,!?.;:\-]/);
+            const hasWord = words.some(w => /^[A-Za-z]{3,}$/.test(w));
+            if (!hasWord) return false;
+            
+            return true;
+        }
+
+        // MOSSE/OGGETTI - Filtro stringente
         if (mode === 'short') {
-            if (str.length < 4 || str.length > 18) return false;
+            if (str.length < 3 || str.length > 20) return false; // Era max 18
             if (str !== str.toUpperCase()) return false;
             if (str.includes('\\')) return false;
             if (/  +/.test(str) || str.startsWith(' ') || str.endsWith(' ')) return false;
@@ -671,7 +710,7 @@
             
             const vowels = (str.match(/[AEIOU]/g) || []).length;
             const letters = (str.match(/[A-Z]/g) || []).length;
-            if (letters > 0 && vowels < letters * 0.30) return false;
+            if (letters > 0 && vowels < letters * 0.25) return false; // Era 0.30
             
             if (/[BCDFGHJKLMNPQRSTVWXYZ]{4,}/.test(str)) return false;
             
@@ -683,7 +722,7 @@
             }
             
             const syllableCount = countSyllables(str);
-            if (syllableCount < 2) {
+            if (syllableCount < 1) { // Era 2
                 if (!knownWords.includes(str.replace(/[^A-Z]/g, ''))) return false;
             }
             
@@ -703,6 +742,7 @@
         if(!rom) return toast('Carica ROM prima!', 'error');
         
         const mode = document.getElementById('extractMode').value;
+        const englishOnly = document.getElementById('englishOnly').checked;
         const body = document.getElementById('resBody');
         body.innerHTML = "";
         scanResults = [];
@@ -715,16 +755,16 @@
         wrap.classList.add('active');
         fill.style.width = '0%';
         
-        log(`Scansione ${mode} avviata`);
+        log(`Scansione ${mode} avviata${englishOnly ? ' (SOLO inglese)' : ''}`);
 
         const START = 0x200000, END = rom.length;
-        let i = START, count = 0, rejected = 0;
+        let i = START, count = 0, rejected = 0, rejectedLang = 0;
 
         function update() {
             const p = Math.min(100, ((i - START) / (END - START)) * 100);
             fill.style.width = p.toFixed(1) + '%';
             pct.textContent = p.toFixed(0) + '%';
-            status.textContent = `0x${i.toString(16).toUpperCase()} — ${count} trovate`;
+            status.textContent = `0x${i.toString(16).toUpperCase()} — ${count} trovate${englishOnly ? ` | ${rejectedLang} non-inglese` : ''}`;
         }
 
         function doScan() {
@@ -738,12 +778,19 @@
                     }
 
                     if(isValidText(s, mode) && !uniqueStrings.has(s)) {
+                        // Filtro lingua se richiesto
+                        if (englishOnly && !isEnglish(s)) {
+                            rejectedLang++;
+                            continue;
+                        }
+                        
                         uniqueStrings.add(s);
                         const off = "0x" + i.toString(16).toUpperCase();
-                        scanResults.push({o: off, t: s, b: j - i});
+                        const lang = isEnglish(s) ? '🇬🇧' : '🇮🇹';
+                        scanResults.push({o: off, t: s, b: j - i, lang: lang});
                         if(count < 200) {
                             body.insertAdjacentHTML('beforeend', 
-                                `<tr><td class="hex">${off}</td><td>${j-i}</td><td class="text-cell">${s}</td></tr>`);
+                                `<tr><td class="hex">${off}</td><td>${j-i}</td><td class="text-cell">${lang} ${s}</td></tr>`);
                         }
                         count++;
                         i = j;
@@ -752,14 +799,14 @@
             }
             
             update();
-            document.getElementById('stats').textContent = `✅ ${count} | 🚫 ${rejected}`;
+            document.getElementById('stats').textContent = `✅ ${count} | 🚫 ${rejected}${englishOnly ? ` | 🇮🇹 ${rejectedLang}` : ''}`;
             
             if(i < END - 1) requestAnimationFrame(doScan);
             else {
                 fill.style.width = '100%';
                 pct.textContent = '100%';
-                status.textContent = `✅ ${count} stringhe trovate`;
-                log(`Completata: ${count} valide`, 'success');
+                status.textContent = `✅ ${count} stringhe${englishOnly ? ' inglesi' : ''} trovate`;
+                log(`Completata: ${count} valide${englishOnly ? ` (${rejectedLang} non-inglesi escluse)` : ''}`, 'success');
                 toast(`${count} stringhe trovate`, 'success');
                 setTimeout(() => wrap.classList.remove('active'), 3000);
             }
@@ -770,10 +817,15 @@
     function exportTxt() {
         if(!scanResults.length) return toast('Niente da esportare', 'error');
         let out = "OFFSET | MAX_BYTE | TESTO\n";
-        scanResults.forEach(r => out += `${r.o} | ${r.b} | ${r.t}\n`);
+        scanResults.forEach(r => {
+            const langTag = r.lang ? `[${r.lang}] ` : '';
+            out += `${r.o} | ${r.b} | ${langTag}${r.t}\n`;
+        });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(new Blob([out], {type:'text/plain'}));
-        a.download = `Trad_${document.getElementById('extractMode').value}_${Date.now()}.txt`;
+        const mode = document.getElementById('extractMode').value;
+        const englishOnly = document.getElementById('englishOnly').checked;
+        a.download = `Trad_${mode}${englishOnly ? '_EN' : ''}_${Date.now()}.txt`;
         a.click();
         log('File esportato', 'success');
     }
@@ -909,7 +961,11 @@
                 const parts = lines[idx].split('|').map(s => s.trim());
                 if (parts.length < 3) continue;
 
-                const [offStr, maxBStr, text] = parts;
+                const [offStr, maxBStr, textRaw] = parts;
+                
+                // Rimuovi tag lingua se presente: [🇬🇧] o [🇮🇹]
+                const text = textRaw.replace(/^\[[🇬🇧🇮🇹]+\]\s*/, '');
+                
                 const oldOff = parseInt(offStr, 16);
                 const maxB = parseInt(maxBStr);
 
