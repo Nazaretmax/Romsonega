@@ -788,7 +788,11 @@
                         uniqueStrings.add(s);
                         const off = "0x" + i.toString(16).toUpperCase();
                         const lang = isEnglish(s) ? '🇬🇧' : '🇮🇹';
+                        
+                        // Salva SENZA tag nel risultato
                         scanResults.push({o: off, t: s, b: j - i, lang: lang});
+                        
+                        // Mostra CON tag nella tabella
                         if(count < 200) {
                             body.insertAdjacentHTML('beforeend', 
                                 `<tr><td class="hex">${off}</td><td>${j-i}</td><td class="text-cell">${lang} ${s}</td></tr>`);
@@ -819,11 +823,16 @@
         if(!scanResults.length) return toast('Niente da esportare', 'error');
         let out = "OFFSET | MAX_BYTE | TESTO\n";
         scanResults.forEach(r => {
-            const langTag = r.lang ? `[${r.lang}] ` : '';
-            out += `${r.o} | ${r.b} | ${langTag}${r.t}\n`;
+            // NON includere tag lingua nel file - servono solo per visualizzazione
+            out += `${r.o} | ${r.b} | ${r.t}\n`;
         });
+        
+        // UTF-8 BOM per compatibilità
+        const BOM = '\uFEFF';
+        const blob = new Blob([BOM + out], {type:'text/plain;charset=utf-8'});
+        
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([out], {type:'text/plain'}));
+        a.href = URL.createObjectURL(blob);
         const mode = document.getElementById('extractMode').value;
         const englishOnly = document.getElementById('englishOnly').checked;
         a.download = `Trad_${mode}${englishOnly ? '_EN' : ''}_${Date.now()}.txt`;
