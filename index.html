@@ -112,6 +112,11 @@
             color: var(--text-dim);
         }
 
+        .info.saved {
+            border-left: 3px solid var(--success);
+            color: var(--success);
+        }
+
         /* Preview box minimalista */
         .preview {
             margin-top: 0.625rem;
@@ -393,11 +398,16 @@
 <!-- Modal Resume -->
 <div class="modal" id="resumeModal">
     <div class="modal-content">
-        <div class="modal-title">🔄 Riprendere patch?</div>
+        <div class="modal-title">🔄 Riprendere patch automaticamente?</div>
         <div class="modal-text" id="resumeText"></div>
+        <div style="font-size:0.75rem;color:var(--text-dim);margin-bottom:1rem;padding:0.5rem;background:var(--bg);border-radius:0.25rem;border-left:2px solid var(--accent)">
+            ✅ ROM e file TXT già salvati in memoria<br>
+            ✅ Stato patch preservato<br>
+            ✅ Click "Riprendi" per continuare automaticamente
+        </div>
         <div class="modal-actions">
-            <button class="btn-outline" onclick="clearResume()">Ricomincia</button>
-            <button onclick="resumePatch()">Riprendi</button>
+            <button class="btn-outline" onclick="clearResume()">Ricomincia da zero</button>
+            <button onclick="resumePatch()">▶️ Riprendi patch</button>
         </div>
     </div>
 </div>
@@ -417,11 +427,81 @@
     let uniqueStrings = new Set();
 
     // ══════════════════════════════════════════════════════════
-    // AUTOSAVE SYSTEM
+    // AUTOSAVE SYSTEM con IndexedDB
     // ══════════════════════════════════════════════════════════
     const AUTOSAVE_KEY = 'gba_patch_state';
-    const AUTOSAVE_INTERVAL = 10; // Salva ogni 10 stringhe
+    const AUTOSAVE_INTERVAL = 10;
+    const DB_NAME = 'GBATranslatorDB';
+    const DB_VERSION = 1;
+    let db = null;
 
+    // Inizializza IndexedDB
+    function initDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                db = request.result;
+                resolve(db);
+            };
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains('files')) {
+                    db.createObjectStore('files', { keyPath: 'id' });
+                }
+            };
+        });
+    }
+
+    // Salva ROM in IndexedDB
+    async function saveROM(romData) {
+        if (!db) await initDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(['files'], 'readwrite');
+            const store = tx.objectStore('files');
+            const request = store.put({ id: 'rom', data: romData, timestamp: Date.now() });
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    // Carica ROM da IndexedDB
+    async function loadROM() {
+        if (!db) await initDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(['files'], 'readonly');
+            const store = tx.objectStore('files');
+            const request = store.get('rom');
+            request.onsuccess = () => resolve(request.result?.data || null);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    // Salva file TXT in IndexedDB
+    async function saveTxtContent(content) {
+        if (!db) await initDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(['files'], 'readwrite');
+            const store = tx.objectStore('files');
+            const request = store.put({ id: 'txt', data: content, timestamp: Date.now() });
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    // Carica file TXT da IndexedDB
+    async function loadTxtContent() {
+        if (!db) await initDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(['files'], 'readonly');
+            const store = tx.objectStore('files');
+            const request = store.get('txt');
+            request.onsuccess = () => resolve(request.result?.data || null);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    // Salva stato patch
     function saveState(idx, stats, lines) {
         const state = {
             timestamp: Date.now(),
@@ -432,28 +512,38 @@
         localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(state));
     }
 
+    // Carica stato patch
     function loadState() {
         const saved = localStorage.getItem(AUTOSAVE_KEY);
         return saved ? JSON.parse(saved) : null;
     }
 
-    function clearState() {
+    // Cancella tutto
+    async function clearState() {
         localStorage.removeItem(AUTOSAVE_KEY);
+        if (db) {
+            const tx = db.transaction(['files'], 'readwrite');
+            const store = tx.objectStore('files');
+            store.delete('rom');
+            store.delete('txt');
+        }
     }
 
     // Check resume al caricamento
-    window.addEventListener('load', () => {
+    window.addEventListener('load', async () => {
+        await initDB();
         const state = loadState();
-        if (state && Date.now() - state.timestamp < 24*60*60*1000) { // 24h
+        if (state && Date.now() - state.timestamp < 24*60*60*1000) {
             const elapsed = Math.floor((Date.now() - state.timestamp) / 60000);
             document.getElementById('resumeText').textContent = 
-                `Trovato salvataggio da ${elapsed} minuti fa. Processate ${state.lastIndex}/${state.totalLines} stringhe.`;
+                `Trovato salvataggio da ${elapsed < 1 ? '<1' : elapsed} minuti fa.\nProcessate ${state.lastIndex}/${state.totalLines} stringhe.\n\nROM e file TXT salvati automaticamente.`;
             document.getElementById('resumeModal').classList.add('active');
         }
     });
 
-    function clearResume() {
-        clearState();
+    // Cancella e ricomincia
+    async function clearResume() {
+        await clearState();
         document.getElementById('resumeModal').classList.remove('active');
         toast('Stato cancellato', 'success');
     }
@@ -478,11 +568,22 @@
 
     document.getElementById('romFile').onchange = function(e) {
         const reader = new FileReader();
-        reader.onload = () => {
+        reader.onload = async () => {
             rom = new Uint8Array(reader.result);
             const mb = (rom.length / 1024 / 1024).toFixed(1);
-            document.getElementById('romInfo').innerHTML = `✅ ${e.target.files[0].name} (${mb} MB)`;
+            const info = document.getElementById('romInfo');
+            info.innerHTML = `✅ ${e.target.files[0].name} (${mb} MB)`;
             log('ROM caricata', 'success');
+            
+            // Salva ROM in IndexedDB per resume automatico
+            try {
+                await saveROM(rom);
+                info.innerHTML = `✅ ${e.target.files[0].name} (${mb} MB) 💾 <span style="color:var(--success)">Salvata per resume</span>`;
+                info.classList.add('saved');
+                log('ROM salvata per resume automatico', 'success');
+            } catch(err) {
+                log('Avviso: ROM non salvata (spazio disco pieno?)', 'warning');
+            }
         };
         reader.readAsArrayBuffer(this.files[0]);
     };
@@ -724,6 +825,64 @@
         const file = document.getElementById('txtFile').files[0];
         if (!file || !rom) return toast('ROM o TXT mancante', 'error');
 
+        const txtContent = await file.text();
+        
+        // Salva file TXT in IndexedDB per resume
+        try {
+            await saveTxtContent(txtContent);
+            log('✅ File TXT salvato per resume automatico', 'success');
+            toast('💾 ROM e TXT salvati - patch protetta', 'success');
+        } catch(err) {
+            log('Avviso: TXT non salvato', 'warning');
+        }
+
+        await doPatch(txtContent, 0);
+    }
+
+    async function resumePatch() {
+        document.getElementById('resumeModal').classList.remove('active');
+        
+        log('⏳ Ripristino dati salvati...', 'info');
+        toast('🔄 Caricamento dati...', 'info');
+        
+        // Carica ROM da IndexedDB
+        const savedROM = await loadROM();
+        if (!savedROM) {
+            toast('❌ ROM non trovata! Ricaricala manualmente', 'error');
+            log('ROM non trovata in memoria', 'error');
+            return;
+        }
+        rom = savedROM;
+        const mb = (rom.length / 1024 / 1024).toFixed(1);
+        const info = document.getElementById('romInfo');
+        info.innerHTML = `✅ ROM ripristinata (${mb} MB) 💾 <span style="color:var(--success)">Da memoria</span>`;
+        info.classList.add('saved');
+        log('✅ ROM caricata automaticamente', 'success');
+        
+        // Carica file TXT da IndexedDB
+        const txtContent = await loadTxtContent();
+        if (!txtContent) {
+            toast('❌ File TXT non trovato! Ricaricalo manualmente', 'error');
+            log('File TXT non trovato in memoria', 'error');
+            return;
+        }
+        log('✅ File TXT caricato automaticamente', 'success');
+        
+        // Carica stato
+        const state = loadState();
+        if (!state) {
+            toast('Stato non trovato', 'error');
+            return;
+        }
+        
+        log(`🔄 Ripresa da riga ${state.lastIndex}/${state.totalLines}`, 'success');
+        toast('🚀 Patch ripresa automaticamente!', 'success');
+        
+        // Riprendi patch da dove si era fermata
+        await doPatch(txtContent, state.lastIndex, state.stats);
+    }
+
+    async function doPatch(txtContent, startIdx = 0, savedStats = null) {
         const btn = document.getElementById('patchBtn');
         btn.disabled = true;
 
@@ -734,16 +893,13 @@
         wrap.classList.add('active');
         fill.style.width = '0%';
 
-        const lines = (await file.text()).split('\n').filter(l => l.includes('|') && !l.startsWith('OFFSET'));
+        const lines = txtContent.split('\n').filter(l => l.includes('|') && !l.startsWith('OFFSET'));
         const total = lines.length;
         
-        // Check se riprendere
-        const saved = loadState();
-        let idx = (saved && saved.totalLines === total) ? saved.lastIndex : 0;
-        let stats = saved && saved.totalLines === total ? saved.stats : 
-            { total: 0, overwritten: 0, repointed: 0, failed: 0, protected: 0 };
+        let idx = startIdx;
+        let stats = savedStats || { total: 0, overwritten: 0, repointed: 0, failed: 0, protected: 0 };
 
-        log(`Patch avviata da riga ${idx}/${total}`);
+        log(`Patch ${startIdx > 0 ? 'ripresa' : 'avviata'} da riga ${idx}/${total}`);
         document.getElementById('patchReport').innerHTML = '';
 
         function processChunk() {
@@ -828,12 +984,6 @@
         }
 
         processChunk();
-    }
-
-    function resumePatch() {
-        document.getElementById('resumeModal').classList.remove('active');
-        // La ROM deve essere caricata e il file TXT riselezionato
-        toast('Ricarica ROM e TXT per riprendere', 'warning');
     }
 </script>
 </body>
