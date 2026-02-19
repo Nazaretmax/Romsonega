@@ -395,6 +395,25 @@
     <div class="section">
         <div class="section-title">⚡ Traduzione</div>
         <input type="file" id="txtFile" accept=".txt">
+        <label style="display:flex;align-items:center;gap:0.5rem;margin-top:0.5rem;font-size:0.75rem;cursor:pointer">
+            <input type="checkbox" id="forceOverwrite" style="width:auto">
+            <span style="color:var(--warning)">⚠️ Forza sovrascrivi (tronca se troppo lungo - RISCHIO CRASH)</span>
+        </label>
+        <div style="font-size:0.7rem;color:var(--text-dim);margin-top:0.5rem;padding:0.5rem;background:var(--bg);border-radius:0.25rem;border-left:2px solid var(--warning)">
+            <strong style="color:var(--warning)">📌 File SHORT (Mosse/Oggetti/Abilità):</strong><br>
+            • NON possono essere spostati (offset fissi in tabelle)<br>
+            • Sistema attiva troncamento AUTO se rileva file SHORT<br>
+            • <strong>Soluzione:</strong> Usa traduzioni più corte!<br>
+            <br>
+            <strong style="color:var(--accent)">Esempi lunghezze OK:</strong><br>
+            SAND VEIL (9) → VELO SABBIA (11) ✅<br>
+            POISON POINT (12) → VELENOPUNTA (12) ✅<br>
+            COLOR CHANGE (12) → CAMBIACOLORE (12) ✅<br>
+            CLEAR BODY (10) → CORPOCHIARO (11) ✅<br>
+            <button onclick="downloadGuide()" style="margin-top:0.5rem;padding:0.25rem 0.5rem;font-size:0.65rem;width:auto">
+                📖 Scarica guida completa traduzioni SHORT
+            </button>
+        </div>
         <button class="btn-success" onclick="patch()" id="patchBtn">Applica Patch</button>
         
         <div class="progress" id="patchProgress">
@@ -830,6 +849,71 @@
         log('File esportato', 'success');
     }
 
+    function downloadGuide() {
+        const guide = `GUIDA TRADUZIONI FILE SHORT (Mosse/Oggetti/Abilità)
+==================================================
+
+⚠️ REGOLA D'ORO: La traduzione deve essere UGUALE o PIÙ CORTA dell'originale!
+
+📌 PERCHÉ?
+Le stringhe SHORT sono in TABELLE con offset FISSI.
+Il gioco legge DIRETTAMENTE da quell'offset → NON si possono spostare!
+
+✂️ COSA SUCCEDE SE È TROPPO LUNGA?
+Il sistema TRONCA automaticamente → Testo incompleto nel gioco!
+
+✅ STRATEGIE DI TRADUZIONE:
+
+1. **Compattazione**: "VELENO PUNTA" → "VELENOPUNTA"
+2. **Abbreviazione**: "CAMBIA COLORE" → "CAMBIACOL"  
+3. **Sinonimi corti**: "ENORME" → "GRAN", "PRESTO" → "PRECO"
+4. **Anglicismi**: "AIR LOCK" → "ARIALOCK"
+5. **Nomi inventati**: "PIATTOPIOGGIA" → "VASSOPIOG"
+
+💡 ESEMPI PRATICI:
+
+SAND VEIL (9) → SABBIAVELO (10) ✅
+COLOR CHANGE (12) → CAMBIACOLORE (12) ✅
+FLASH FIRE (10) → FUOCOLAMPO (10) ✅
+CLEAR BODY (10) → CORPOPURO (9) ✅
+HUGE POWER (10) → GRANFORZA (9) ✅
+POISON POINT (12) → VELENOPUNTA (12) ✅
+EARLY BIRD (10) → MATTINIERO (10) ✅
+FLAME BODY (10) → CORPOFUOCO (10) ✅
+ROCK HEAD (9) → TESTADURA (9) ✅
+AIR LOCK (8) → ARIALOCK (8) ✅
+
+❌ ERRORI COMUNI:
+
+FIRE → FUOCO (4→5) ✅
+FIRE STONE → PIETRA FUOCO (10→12) ❌ → PIETRAFUOCO (11) ✅
+ROCK → ROCCIA (4→6) ❌ → ROCCA (5) ✅
+COLOR → COLORE (5→6) ❌ → COLOR (5) ✅
+
+🔧 WORKFLOW:
+
+1. Estrai con "Mosse/Oggetti"
+2. Guarda colonna MAX_BYTE
+3. Traduci con MAX quel numero di caratteri
+4. Applica patch
+5. Controlla nel gioco
+6. Se troncato → traduci più corto → ri-patcha
+
+📊 TABELLA VELOCE:
+
+3-5 byte  → Usa traduzione identica o più corta
+6-8 byte  → Compatta parole, togli spazi  
+9-12 byte → Sinonimi corti, abbreviazioni
+13+ byte  → Solo per dialoghi (altra modalità!)
+
+==================================================`;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([guide], {type:'text/plain;charset=utf-8'}));
+        a.download = 'GUIDA_traduzioni_SHORT.txt';
+        a.click();
+        toast('Guida scaricata!', 'success');
+    }
+
     // ══════════════════════════════════════════════════════════
     // PATCH con AUTOSAVE
     // ══════════════════════════════════════════════════════════
@@ -864,12 +948,37 @@
         const oldPtr = createPointer(oldOff);
         const newPtr = createPointer(newOff);
         let found = 0;
+        
+        // Scansiona TUTTA la ROM (non solo da 0x0)
+        // I puntatori possono essere ovunque, anche all'inizio
         for (let i = 0; i < rom.length - 4; i++) {
-            if (rom[i] === oldPtr[0] && rom[i+1] === oldPtr[1] && rom[i+2] === oldPtr[2] && rom[i+3] === oldPtr[3]) {
+            if (rom[i] === oldPtr[0] && 
+                rom[i+1] === oldPtr[1] && 
+                rom[i+2] === oldPtr[2] && 
+                rom[i+3] === oldPtr[3]) {
                 rom.set(newPtr, i);
                 found++;
             }
         }
+        
+        // Se non trovato nessun puntatore, prova pattern alternativi
+        if (found === 0) {
+            // Cerca offset senza byte 0x08 (alcuni giochi usano offset diretti)
+            const offset3Bytes = new Uint8Array([oldOff & 0xFF, (oldOff >> 8) & 0xFF, (oldOff >> 16) & 0xFF]);
+            for (let i = 0; i < rom.length - 3; i++) {
+                if (rom[i] === offset3Bytes[0] && 
+                    rom[i+1] === offset3Bytes[1] && 
+                    rom[i+2] === offset3Bytes[2]) {
+                    // Verifica che non sia un falso positivo
+                    if (i < 4 || rom[i-1] !== 0x08) { // Non è già un puntatore completo
+                        const new3Bytes = new Uint8Array([newOff & 0xFF, (newOff >> 8) & 0xFF, (newOff >> 16) & 0xFF]);
+                        rom.set(new3Bytes, i);
+                        found++;
+                    }
+                }
+            }
+        }
+        
         return found;
     }
 
@@ -878,6 +987,43 @@
         if (!file || !rom) return toast('ROM o TXT mancante', 'error');
 
         const txtContent = await file.text();
+        
+        // RILEVA SE È UN FILE SHORT (mosse/oggetti/abilità)
+        const lines = txtContent.split('\n').slice(1, 20); // Prendi prime 20 righe
+        let shortCount = 0;
+        for (let line of lines) {
+            const parts = line.split('|');
+            if (parts.length >= 3) {
+                const text = parts[2].trim().replace(/^\[[🇬🇧🇮🇹]+\]\s*/, '');
+                // Se il testo è tutto maiuscolo e corto, è probabilmente SHORT
+                if (text === text.toUpperCase() && text.length < 25 && !text.includes('\\n')) {
+                    shortCount++;
+                }
+            }
+        }
+        
+        const isShortFile = shortCount > 10; // Se più di 10 su 20 sono SHORT
+        
+        if (isShortFile) {
+            const confirm = window.confirm(
+                '⚠️ FILE RILEVATO: Mosse/Oggetti/Abilità\n\n' +
+                'Queste stringhe NON possono essere spostate!\n' +
+                'Il gioco le legge da offset FISSI in tabelle.\n\n' +
+                '✅ Soluzione: Troncare automaticamente le traduzioni lunghe\n' +
+                '❌ Alternativa: Usa traduzioni più corte\n\n' +
+                'Vuoi procedere con troncamento automatico?'
+            );
+            
+            if (!confirm) {
+                toast('Patch annullata', 'warning');
+                return;
+            }
+            
+            // Forza overwrite per file SHORT
+            document.getElementById('forceOverwrite').checked = true;
+            log('🔪 Modalità TRONCAMENTO attivata automaticamente per file SHORT', 'warning');
+            toast('⚠️ Testo troppo lungo verrà troncato', 'warning');
+        }
         
         // Salva file TXT in IndexedDB per resume
         try {
@@ -949,7 +1095,7 @@
         const total = lines.length;
         
         let idx = startIdx;
-        let stats = savedStats || { total: 0, overwritten: 0, repointed: 0, failed: 0, protected: 0 };
+        let stats = savedStats || { total: 0, overwritten: 0, repointed: 0, failed: 0, protected: 0, noPointers: 0, truncated: 0 };
 
         log(`Patch ${startIdx > 0 ? 'ripresa' : 'avviata'} da riga ${idx}/${total}`);
         document.getElementById('patchReport').innerHTML = '';
@@ -976,26 +1122,49 @@
 
                 stats.total++;
                 const newBytes = textToBytes(text);
+                const forceOverwrite = document.getElementById('forceOverwrite').checked;
 
                 try {
                     if (newBytes.length <= maxB + 1) {
+                        // CASO 1: Entra nello spazio originale
                         rom.set(newBytes, oldOff);
                         const rem = (maxB + 1) - newBytes.length;
                         if (rem > 0) rom.set(new Uint8Array(rem).fill(0xFF), oldOff + newBytes.length);
                         stats.overwritten++;
+                    } else if (forceOverwrite) {
+                        // CASO 2: Force overwrite - TRONCA il testo
+                        const originalText = text.substring(0, 30); // Primi 30 char per log
+                        log(`⚠️ ${offStr}: "${originalText}..." troncato da ${newBytes.length} a ${maxB + 1} bytes`, 'warning');
+                        const truncated = newBytes.slice(0, maxB);
+                        truncated.push(0xFF);
+                        rom.set(truncated, oldOff);
+                        stats.overwritten++;
+                        stats.truncated++;
                     } else {
+                        // CASO 3: Repointing normale
                         const newOff = findFreeSpace(newBytes.length);
                         if (newOff === -1) {
                             stats.failed++;
-                            log(`Spazio mancante: ${offStr}`, 'error');
+                            log(`❌ ${offStr}: Spazio insufficiente (${newBytes.length} bytes)`, 'error');
                             continue;
                         }
                         rom.set(newBytes, newOff);
-                        repointPointers(oldOff, newOff);
+                        const ptrCount = repointPointers(oldOff, newOff);
                         stats.repointed++;
+                        
+                        // Traccia puntatori non trovati
+                        if (ptrCount === 0) {
+                            stats.noPointers++;
+                            log(`⚠️ ${offStr} → 0x${newOff.toString(16).toUpperCase()}: NESSUN puntatore trovato! Testo potrebbe rimanere inglese`, 'warning');
+                        } else if (ptrCount === 1) {
+                            log(`✅ ${offStr} → 0x${newOff.toString(16).toUpperCase()}: ${ptrCount} puntatore aggiornato`, 'success');
+                        } else {
+                            log(`✅ ${offStr} → 0x${newOff.toString(16).toUpperCase()}: ${ptrCount} puntatori aggiornati`, 'success');
+                        }
                     }
                 } catch(e) {
                     stats.failed++;
+                    log(`❌ ${offStr}: ${e.message}`, 'error');
                 }
 
                 // AUTOSAVE ogni 10 stringhe
@@ -1022,12 +1191,25 @@
                     <div class="report">
                         <div class="report-item"><span>Processate</span><strong>${stats.total}</strong></div>
                         <div class="report-item"><span>✅ In loco</span><strong style="color:var(--success)">${stats.overwritten}</strong></div>
+                        ${stats.truncated > 0 ? `<div class="report-item"><span>✂️ Troncate</span><strong style="color:var(--warning)">${stats.truncated}</strong></div>` : ''}
                         <div class="report-item"><span>🔀 Repoint</span><strong style="color:var(--accent)">${stats.repointed}</strong></div>
+                        ${stats.noPointers > 0 ? `<div class="report-item"><span>⚠️ Senza puntatori</span><strong style="color:var(--warning)">${stats.noPointers}</strong></div>` : ''}
                         <div class="report-item"><span>🛡️ Protette</span><strong style="color:var(--warning)">${stats.protected}</strong></div>
                         <div class="report-item"><span>❌ Fallite</span><strong style="color:var(--danger)">${stats.failed}</strong></div>
                     </div>`;
 
-                log(`Patch OK: ${stats.overwritten + stats.repointed}/${stats.total}`, 'success');
+                log(`✅ Patch OK: ${stats.overwritten + stats.repointed}/${stats.total}`, 'success');
+                
+                if (stats.truncated > 0) {
+                    log(`✂️ ${stats.truncated} stringhe TRONCATE! Controlla il gioco`, 'warning');
+                    log(`💡 CONSIGLIO: Usa traduzioni più corte per evitare troncamenti`, 'warning');
+                }
+                
+                if (stats.noPointers > 0) {
+                    log(`⚠️ ATTENZIONE: ${stats.noPointers} stringhe spostate SENZA puntatori trovati!`, 'warning');
+                    log(`⚠️ Il testo potrebbe rimanere in inglese. Usa modalità "TUTTO + inglese" per trovare cosa manca`, 'warning');
+                    toast(`⚠️ ${stats.noPointers} stringhe potrebbero essere ancora in inglese`, 'warning');
+                }
 
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(new Blob([rom], {type:'application/octet-stream'}));
