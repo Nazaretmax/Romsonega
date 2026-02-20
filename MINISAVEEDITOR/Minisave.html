@@ -533,7 +533,7 @@ footer {
 
 <header>
   <span class="logo">DL2 <em>Save</em> Editor</span>
-  <span class="ver">v3.2 — smart</span>
+  <span class="ver">v3.3 — smart</span>
 </header>
 
 <main>
@@ -602,19 +602,19 @@ footer {
       <div class="stat-grid four">
         <div class="stat-cell">
           <span class="stat-label">Carisma</span>
-          <input type="number" id="statCharisma" min="0" max="100" oninput="markDirty()">
+          <input type="number" id="statCharisma" min="0" max="8" oninput="markDirty()">
         </div>
         <div class="stat-cell">
           <span class="stat-label">Competenza</span>
-          <input type="number" id="statCompetence" min="0" max="100" oninput="markDirty()">
+          <input type="number" id="statCompetence" min="0" max="8" oninput="markDirty()">
         </div>
         <div class="stat-cell">
           <span class="stat-label">Intuito</span>
-          <input type="number" id="statInsight" min="0" max="100" oninput="markDirty()">
+          <input type="number" id="statInsight" min="0" max="8" oninput="markDirty()">
         </div>
         <div class="stat-cell">
           <span class="stat-label">Fortuna</span>
-          <input type="number" id="statLuck" min="0" max="100" oninput="markDirty()">
+          <input type="number" id="statLuck" min="0" max="8" oninput="markDirty()">
         </div>
       </div>
     </div>
@@ -964,10 +964,10 @@ function applyChanges() {
   d.cash.offset = 0;
 
   // Abilità
-  p.charisma   = clamp(parseInt(document.getElementById('statCharisma').value)   || 0, 0, 100);
-  p.competence = clamp(parseInt(document.getElementById('statCompetence').value) || 0, 0, 100);
-  p.insight    = clamp(parseInt(document.getElementById('statInsight').value)    || 0, 0, 100);
-  p.luck       = clamp(parseInt(document.getElementById('statLuck').value)       || 0, 0, 100);
+  p.charisma   = clamp(parseInt(document.getElementById("statCharisma").value) || 0, 0, 8);
+  p.competence = clamp(parseInt(document.getElementById("statCompetence").value) || 0, 0, 8);
+  p.insight    = clamp(parseInt(document.getElementById("statInsight").value) || 0, 0, 8);
+  p.luck       = clamp(parseInt(document.getElementById("statLuck").value) || 0, 0, 8);
 
   // Negozio e altro
   p.reputation = parseInt(document.getElementById('statRep').value)    || 0;
