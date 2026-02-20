@@ -561,9 +561,12 @@ footer {
     </div>
     <div class="btn-row" style="margin-top:8px">
       <button class="btn btn-dl" id="btnBak" onclick="downloadBackup()">
-        ↓ &nbsp;Scarica Backup .bak
+        ↓ &nbsp;Scarica .bak manuale
       </button>
     </div>
+    <p style="font-family:var(--mono);font-size:.6rem;color:var(--muted);margin-top:8px;line-height:1.6;padding:0 2px">
+      ℹ Il gioco crea già il .bak automaticamente ad ogni salvataggio — non è necessario scaricarlo dall'editor.
+    </p>
 
   </div>
 
@@ -721,12 +724,9 @@ function applyChanges() {
   const json    = JSON.stringify(d);
   const encoded = encodeXOR(json);
 
-  // Backup automatico prima del download
-  downloadBackup();
-
   // Download file modificato — stesso nome originale per sostituzione diretta
   dlBuffer(encoded, fileName);
-  toast('✓ Scaricato come "' + fileName + '" — sostituisci direttamente!', 'ok');
+  toast('✓ "' + fileName + '" pronto — sostituisci direttamente!', 'ok');
 
   // Aggiorna display soldi
   document.getElementById('moneyDisplay').textContent = fmtMoney(newCash);
