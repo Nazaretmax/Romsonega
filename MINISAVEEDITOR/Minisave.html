@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>DL2 Save Editor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0f14;
+      --surface:   #13161e;
+      --panel:     #1a1e2a;
+      --border:    #2a2f3d;
+      --accent:    #f0a500;
+      --accent2:   #e05c00;
+      --green:     #39ff9a;
+      --red:       #ff4757;
+      --text:      #c8d0e0;
+      --muted:     #5a6070;
+      --font-mono: 'Share Tech Mono', monospace;
+      --font-ui:   'Barlow Condensed', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-ui);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 16px 60px;
+    }
+
+    /* Scanline overlay */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.06) 2px, rgba(0,0,0,.06) 4px);
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* Noise texture */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 998;
+      opacity: 0.4;
+    }
+
+    header {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 28px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 18px;
+    }
+
+    .logo {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: grid; place-items: center;
+      font-size: 22px;
+    }
+
+    header h1 {
+      font-family: var(--font-ui);
+      font-size: 26px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #fff;
+    }
+
+    header h1 span { color: var(--accent); }
+
+    .badge {
+      margin-left: auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      padding: 4px 10px;
+      border-radius: 4px;
+      letter-spacing: 1px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-title {
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* File drop zone */
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 28px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(240,165,0,.05);
+    }
+
+    .dropzone input {
+      position: absolute; inset: 0;
+      opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+
+    .dropzone .dz-icon { font-size: 36px; margin-bottom: 8px; display: block; }
+
+    .dropzone .dz-label {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .dropzone .dz-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .file-info {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-top: 12px;
+    }
+
+    .file-info .fi-icon { font-size: 24px; }
+
+    .file-info .fi-name {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--green);
+    }
+
+    .file-info .fi-size {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* Grid for fields */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .field input, .field select {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: #fff;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-family: var(--font-mono);
+      font-size: 14px;
+      width: 100%;
+      transition: border-color .15s;
+      appearance: none;
+    }
+
+    .field input:focus, .field select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    /* Options row */
+    .options-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text);
+      user-select: none;
+    }
+
+    .checkbox-label input[type=checkbox] {
+      width: 16px; height: 16px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* XOR section */
+    .xor-section {
+      display: none;
+      margin-top: 12px;
+      padding: 14px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .xor-section.visible { display: block; }
+
+    .xor-section .note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 8px;
+      line-height: 1.5;
+    }
+
+    /* Buttons */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 13px 18px;
+      border: none;
+      border-radius: 7px;
+      font-family: var(--font-ui);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform .1s, opacity .15s;
+    }
+
+    .btn:active { transform: scale(.97); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #000;
+    }
+
+    .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-secondary:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .btn-green {
+      background: var(--green);
+      color: #000;
+    }
+
+    /* Log */
+    .log-box {
+      background: #060809;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      height: 180px;
+      overflow-y: auto;
+      line-height: 1.7;
+    }
+
+    .log-box::-webkit-scrollbar { width: 4px; }
+    .log-box::-webkit-scrollbar-track { background: transparent; }
+    .log-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .log-entry { display: flex; gap: 8px; }
+    .log-ts { color: var(--muted); min-width: 56px; }
+    .log-info { color: var(--green); }
+    .log-warn { color: var(--accent); }
+    .log-error { color: var(--red); }
+    .log-found { color: #66d9ff; }
+
+    /* Hex preview */
+    .hex-preview {
+      display: none;
+      margin-top: 12px;
+      background: #060809;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      word-break: break-all;
+      line-height: 1.8;
+    }
+
+    .hex-preview .hl { color: var(--accent); font-weight: bold; }
+    .hex-preview-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    /* Result badges */
+    .result-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .result-badge {
+      background: rgba(102,217,255,.1);
+      border: 1px solid rgba(102,217,255,.3);
+      color: #66d9ff;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+
+    /* Status bar */
+    .statusbar {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0 0;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      font-family: var(--font-mono);
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      margin-right: 6px;
+    }
+
+    .status-dot.active { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .pulsing { animation: pulse 1.2s infinite; }
+
+    @media (max-width: 500px) {
+      .grid { grid-template-columns: 1fr; }
+      .btn-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🎰</div>
+  <h1>DL2 <span>Save</span> Editor</h1>
+  <div class="badge">v2.0-beta</div>
+</header>
+
+<div class="container">
+
+  <!-- STEP 1: File -->
+  <div class="card">
+    <p class="card-title">// 01 — Carica File di Salvataggio</p>
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="fileInput" accept=".dat,.sav">
+      <span class="dz-icon">📂</span>
+      <div class="dz-label">Trascina qui il file, oppure clicca</div>
+      <div class="dz-sub">Formati supportati: .dat · .sav</div>
+    </div>
+    <div class="file-info" id="fileInfo">
+      <div class="fi-icon">📄</div>
+      <div>
+        <div class="fi-name" id="fiName">—</div>
+        <div class="fi-size" id="fiSize">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Parametri -->
+  <div class="card">
+    <p class="card-title">// 02 — Parametri di Ricerca</p>
+    <div class="grid">
+      <div class="field">
+        <label>Valore da cercare</label>
+        <input type="number" id="searchValue" placeholder="Es: 1250" step="any">
+      </div>
+      <div class="field">
+        <label>Nuovo valore</label>
+        <input type="number" id="newValue" placeholder="Es: 9999999" step="any">
+      </div>
+      <div class="field">
+        <label>Formato dati</label>
+        <select id="dataFormat">
+          <option value="float64">Float64 (Double, 8 byte)</option>
+          <option value="float32">Float32 (Single, 4 byte)</option>
+          <option value="int32">Int32 (4 byte)</option>
+          <option value="int16">Int16 (2 byte)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Endianness</label>
+        <select id="endian">
+          <option value="1">Little Endian (LE) ✓</option>
+          <option value="0">Big Endian (BE)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="options-row">
+      <label class="checkbox-label">
+        <input type="checkbox" id="findAll">
+        Trova tutte le occorrenze
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="useXor" onchange="toggleXor()">
+        Pre-elaborazione XOR
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="autoBackup" checked>
+        Backup automatico (.bak)
+      </label>
+    </div>
+
+    <!-- XOR settings -->
+    <div class="xor-section" id="xorSection">
+      <div class="grid">
+        <div class="field">
+          <label>Chiave XOR (hex)</label>
+          <input type="text" id="xorKey" placeholder="Es: 0xFF oppure 0x5A" value="0xFF">
+        </div>
+      </div>
+      <p class="note">
+        ⚠️ Se il file è cifrato con XOR a chiave singola fissa, il buffer verrà
+        decodificato prima della ricerca e ri-codificato prima del download.
+        Usa un hex editor per identificare la chiave corretta.
+      </p>
+    </div>
+  </div>
+
+  <!-- STEP 3: Azione -->
+  <div class="card">
+    <p class="card-title">// 03 — Esecuzione</p>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnSearch" onclick="findAndModify()" disabled>
+        🔍 Cerca &amp; Modifica
+      </button>
+      <button class="btn btn-secondary" id="btnClear" onclick="clearLog()">
+        ✕ Pulisci Log
+      </button>
+    </div>
+
+    <div style="margin-top: 14px;">
+      <div class="log-box" id="outputLog">
+        <div class="log-entry"><span class="log-ts">00:00:00</span><span class="log-info">Sistema pronto. Carica un file per iniziare.</span></div>
+      </div>
+    </div>
+
+    <div class="result-row" id="resultRow"></div>
+
+    <!-- Hex preview -->
+    <div class="hex-preview" id="hexPreview">
+      <div class="hex-preview-title">// Hex Context</div>
+      <div id="hexContent"></div>
+    </div>
+
+    <div class="btn-row" style="margin-top: 14px;">
+      <button class="btn btn-green" id="downloadBtn" onclick="downloadSave()" disabled>
+        ⬇ Scarica File Modificato
+      </button>
+      <button class="btn btn-secondary" id="downloadBak" onclick="downloadBackup()" disabled>
+        🗂 Scarica Backup .bak
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<div class="statusbar">
+  <div><span class="status-dot" id="statusDot"></span><span id="statusText">NESSUN FILE CARICATO</span></div>
+  <div id="statusRight">DL2 Save Editor © 2025</div>
+</div>
+
+<script>
+  /* ─── Stato globale ─────────────────────────────────── */
+  let fileData     = null;   // Uint8Array (buffer attivo, può essere decodificato XOR)
+  let originalData = null;   // Uint8Array (copia originale grezzo del file)
+  let fileName     = '';
+  let isXorActive  = false;
+  let xorKeyValue  = 0xFF;
+
+  /* ─── Drag & Drop ───────────────────────────────────── */
+  const dropzone = document.getElementById('dropzone');
+  dropzone.addEventListener('dragover',  e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f) loadFile(f);
+  });
+
+  document.getElementById('fileInput').onchange = function(e) {
+    const f = e.target.files[0];
+    if (f) loadFile(f);
+  };
+
+  function loadFile(file) {
+    fileName = file.name;
+    const reader = new FileReader();
+    reader.onload = function() {
+      originalData = new Uint8Array(reader.result);
+      fileData     = new Uint8Array(originalData); // copia di lavoro
+
+      // UI
+      document.getElementById('fileInfo').style.display = 'flex';
+      document.getElementById('fiName').textContent = fileName;
+      document.getElementById('fiSize').textContent  = formatBytes(fileData.length);
+      document.getElementById('btnSearch').disabled  = false;
+      document.getElementById('downloadBak').disabled = false;
+      setStatus('FILE CARICATO — ' + formatBytes(fileData.length), true);
+      log('File caricato: ' + fileName + ' (' + formatBytes(fileData.length) + ')', 'info');
+      document.getElementById('resultRow').innerHTML = '';
+      document.getElementById('hexPreview').style.display = 'none';
+      document.getElementById('downloadBtn').disabled = true;
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  /* ─── XOR toggle ────────────────────────────────────── */
+  function toggleXor() {
+    const on = document.getElementById('useXor').checked;
+    document.getElementById('xorSection').classList.toggle('visible', on);
+  }
+
+  /* ─── Cerca & Modifica ──────────────────────────────── */
+  function findAndModify() {
+    if (!fileData) return alert('Carica prima un file!');
+
+    const searchVal = parseFloat(document.getElementById('searchValue').value);
+    const newVal    = parseFloat(document.getElementById('newValue').value);
+    const format    = document.getElementById('dataFormat').value;
+    const le        = document.getElementById('endian').value === '1';
+    const findAll   = document.getElementById('findAll').checked;
+    const useXor    = document.getElementById('useXor').checked;
+
+    if (isNaN(searchVal)) return alert('Inserisci un valore di ricerca valido.');
+    if (isNaN(newVal))    return alert('Inserisci un nuovo valore valido.');
+
+    // Clona buffer originale per ogni operazione
+    let workBuf = new Uint8Array(originalData);
+
+    // XOR decode
+    if (useXor) {
+      const keyStr = document.getElementById('xorKey').value.trim();
+      xorKeyValue  = parseInt(keyStr, 16);
+      if (isNaN(xorKeyValue)) return alert('Chiave XOR non valida. Usa formato hex: 0xFF');
+      workBuf = xorBuffer(workBuf, xorKeyValue);
+      log('XOR decode applicato con chiave 0x' + xorKeyValue.toString(16).toUpperCase(), 'warn');
+    }
+
+    const view  = new DataView(workBuf.buffer);
+    const byteLen = formatByteLen(format);
+    const offsets = [];
+
+    log(`Ricerca valore ${searchVal} come ${format} (${le ? 'LE' : 'BE'})...`, 'info');
+
+    for (let i = 0; i <= workBuf.length - byteLen; i++) {
+      const v = readVal(view, i, format, le);
+      if (v !== null && Math.abs(v - searchVal) < 1e-6) {
+        offsets.push(i);
+        if (!findAll) break;
+      }
+    }
+
+    // Aggiorna badge risultati
+    const resultRow = document.getElementById('resultRow');
+    resultRow.innerHTML = '';
+
+    if (offsets.length === 0) {
+      log('Valore non trovato. Prova un formato diverso o abilita XOR.', 'error');
+      return;
+    }
+
+    log(`Trovate ${offsets.length} occorrenza/e.`, 'found');
+
+    offsets.forEach((off, idx) => {
+      writeVal(view, off, format, le, newVal);
+      log(`[${idx+1}] Offset 0x${off.toString(16).toUpperCase().padStart(8,'0')} → ${searchVal} → ${newVal}`, 'found');
+
+      const badge = document.createElement('div');
+      badge.className = 'result-badge';
+      badge.textContent = `0x${off.toString(16).toUpperCase()}`;
+      resultRow.appendChild(badge);
+
+      // Mostra hex context sul primo risultato
+      if (idx === 0) showHexPreview(workBuf, off, byteLen);
+    });
+
+    // XOR re-encode
+    if (useXor) {
+      const enc = xorBuffer(new Uint8Array(view.buffer), xorKeyValue);
+      fileData = enc;
+      log('XOR re-encode applicato.', 'warn');
+    } else {
+      fileData = new Uint8Array(view.buffer);
+    }
+
+    document.getElementById('downloadBtn').disabled = false;
+    log('Modifica completata. Pronto per il download.', 'info');
+  }
+
+  /* ─── Download ──────────────────────────────────────── */
+  function downloadSave() {
+    if (document.getElementById('autoBackup').checked) downloadBackup();
+    triggerDownload(fileData, 'MODIFIED_' + fileName);
+    log('File modificato scaricato: MODIFIED_' + fileName, 'info');
+  }
+
+  function downloadBackup() {
+    if (!originalData) return;
+    triggerDownload(originalData, fileName + '.bak');
+    log('Backup scaricato: ' + fileName + '.bak', 'warn');
+  }
+
+  function triggerDownload(data, name) {
+    const blob = new Blob([data], { type: 'application/octet-stream' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  /* ─── Helper: leggi/scrivi valore ──────────────────── */
+  function readVal(view, i, format, le) {
+    try {
+      if (format === 'float64') return view.getFloat64(i, le);
+      if (format === 'float32') return view.getFloat32(i, le);
+      if (format === 'int32')   return view.getInt32(i, le);
+      if (format === 'int16')   return view.getInt16(i, le);
+    } catch { return null; }
+    return null;
+  }
+
+  function writeVal(view, i, format, le, val) {
+    if (format === 'float64') view.setFloat64(i, val, le);
+    if (format === 'float32') view.setFloat32(i, val, le);
+    if (format === 'int32')   view.setInt32(i, Math.round(val), le);
+    if (format === 'int16')   view.setInt16(i, Math.round(val), le);
+  }
+
+  function formatByteLen(format) {
+    return { float64: 8, float32: 4, int32: 4, int16: 2 }[format] || 8;
+  }
+
+  /* ─── XOR buffer ────────────────────────────────────── */
+  function xorBuffer(buf, key) {
+    const out = new Uint8Array(buf.length);
+    for (let i = 0; i < buf.length; i++) out[i] = buf[i] ^ key;
+    return out;
+  }
+
+  /* ─── Hex preview ───────────────────────────────────── */
+  function showHexPreview(buf, offset, byteLen) {
+    const start  = Math.max(0, offset - 8);
+    const end    = Math.min(buf.length, offset + byteLen + 8);
+    const slice  = buf.slice(start, end);
+    let html = '';
+    slice.forEach((b, i) => {
+      const absIdx = start + i;
+      const hex = b.toString(16).toUpperCase().padStart(2,'0');
+      if (absIdx >= offset && absIdx < offset + byteLen)
+        html += `<span class="hl">${hex} </span>`;
+      else
+        html += `${hex} `;
+    });
+    document.getElementById('hexContent').innerHTML = html;
+    document.getElementById('hexPreview').style.display = 'block';
+  }
+
+  /* ─── Log ───────────────────────────────────────────── */
+  function log(msg, type = 'info') {
+    const l  = document.getElementById('outputLog');
+    const ts = new Date().toTimeString().slice(0,8);
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `<span class="log-ts">${ts}</span><span class="log-${type}">${msg}</span>`;
+    l.appendChild(entry);
+    l.scrollTop = l.scrollHeight;
+  }
+
+  function clearLog() {
+    document.getElementById('outputLog').innerHTML = '';
+    document.getElementById('resultRow').innerHTML = '';
+    document.getElementById('hexPreview').style.display = 'none';
+  }
+
+  /* ─── Status bar ────────────────────────────────────── */
+  function setStatus(text, active = false) {
+    document.getElementById('statusText').textContent = text;
+    document.getElementById('statusDot').classList.toggle('active', active);
+  }
+
+  /* ─── Utils ─────────────────────────────────────────── */
+  function formatBytes(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n/1024).toFixed(1) + ' KB';
+    return (n/1048576).toFixed(2) + ' MB';
+  }
+</script>
+
+</body>
+</html>
