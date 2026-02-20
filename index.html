@@ -777,6 +777,12 @@
                         s += charMap[rom[j]] || '';
                         j++;
                     }
+                    
+                    // Skippa stringhe vuote o cancellate
+                    if (!s || s.trim().length === 0) {
+                        rejected++;
+                        continue;
+                    }
 
                     if(isValidText(s, mode) && !uniqueStrings.has(s)) {
                         // Filtro lingua se richiesto
@@ -945,9 +951,11 @@
         if (isShortFile) {
             const confirm = window.confirm(
                 '⚠️ FILE SHORT RILEVATO\n\n' +
-                'Le traduzioni devono essere ≤ MAX_BYTE\n' +
-                'Altrimenti verranno TRONCATE.\n\n' +
-                'Procedi con troncamento automatico?'
+                'Stringhe troppo lunghe verranno SPOSTATE (repoint).\n' +
+                'Le vecchie stringhe verranno cancellate.\n\n' +
+                'ATTENZIONE: Alcuni giochi potrebbero crashare!\n' +
+                'Funziona solo se il gioco usa puntatori.\n\n' +
+                'Vuoi procedere?'
             );
             
             if (!confirm) {
@@ -955,8 +963,8 @@
                 return;
             }
             
-            document.getElementById('forceOverwrite').checked = true;
-            log('🔪 Troncamento automatico attivato', 'warning');
+            log('🔀 Repointing automatico attivato per file SHORT', 'warning');
+            // NON forziamo overwrite, permettiamo repointing normale
         }
         
         // Salva file TXT in IndexedDB per resume
@@ -1029,7 +1037,7 @@
         const total = lines.length;
         
         let idx = startIdx;
-        let stats = savedStats || { total: 0, overwritten: 0, repointed: 0, failed: 0, protected: 0, noPointers: 0, truncated: 0 };
+        let stats = savedStats || { total: 0, overwritten: 0, repointed: 0, failed: 0, protected: 0, noPointers: 0, truncated: 0, deleted: 0 };
 
         log(`Patch ${startIdx > 0 ? 'ripresa' : 'avviata'} da riga ${idx}/${total}`);
         document.getElementById('patchReport').innerHTML = '';
@@ -1083,11 +1091,20 @@
                             log(`❌ ${offStr}: Spazio insufficiente (${newBytes.length} bytes)`, 'error');
                             continue;
                         }
+                        
+                        // Scrivi nuova stringa
                         rom.set(newBytes, newOff);
+                        
+                        // CANCELLA vecchia stringa con 0xFF (così non si ritrova in scansione)
+                        const oldLen = maxB + 1;
+                        rom.set(new Uint8Array(oldLen).fill(0xFF), oldOff);
+                        stats.deleted++;
+                        
+                        // Aggiorna puntatori
                         const ptrCount = repointPointers(oldOff, newOff);
                         stats.repointed++;
                         
-                        // Log solo se nessun puntatore trovato
+                        // Traccia puntatori non trovati
                         if (ptrCount === 0) {
                             stats.noPointers++;
                         }
@@ -1125,12 +1142,17 @@
                         <div class="report-item"><span>✅ In loco</span><strong style="color:var(--success)">${stats.overwritten}</strong></div>
                         ${stats.truncated > 0 ? `<div class="report-item"><span>✂️ Troncate</span><strong style="color:var(--warning)">${stats.truncated} (${truncPercent}%)</strong></div>` : ''}
                         <div class="report-item"><span>🔀 Repoint</span><strong style="color:var(--accent)">${stats.repointed}</strong></div>
+                        ${stats.deleted > 0 ? `<div class="report-item"><span>🗑️ Cancellate</span><strong style="color:var(--success)">${stats.deleted}</strong></div>` : ''}
                         ${stats.noPointers > 0 ? `<div class="report-item"><span>⚠️ Senza ptr</span><strong style="color:var(--warning)">${stats.noPointers}</strong></div>` : ''}
                         <div class="report-item"><span>🛡️ Protette</span><strong style="color:var(--text-dim)">${stats.protected}</strong></div>
                         ${stats.failed > 0 ? `<div class="report-item"><span>❌ Fallite</span><strong style="color:var(--danger)">${stats.failed}</strong></div>` : ''}
                     </div>`;
 
                 log(`✅ Patch completata: ${stats.overwritten + stats.repointed}/${stats.total}`, 'success');
+                
+                if (stats.deleted > 0) {
+                    log(`🗑️ ${stats.deleted} stringhe vecchie cancellate (non rilevabili in scansione)`, 'success');
+                }
                 
                 if (stats.truncated > 0) {
                     const truncPercent = Math.round((stats.truncated / stats.total) * 100);
@@ -1143,7 +1165,7 @@
                 }
                 
                 if (stats.noPointers > 0) {
-                    log(`⚠️ ${stats.noPointers} stringhe senza puntatori`, 'warning');
+                    log(`⚠️ ${stats.noPointers} stringhe senza puntatori (potrebbero rimanere inglesi)`, 'warning');
                 }
 
                 const a = document.createElement('a');
