@@ -481,9 +481,7 @@ footer {
           <span class="money-label">Saldo corrente</span>
           <span class="money-current" id="moneyDisplay">—</span>
         </div>
-        <p style="font-family:var(--mono);font-size:.6rem;color:var(--muted);margin-bottom:10px;line-height:1.5">
-          ⚠ Il gioco può mostrare ±qualche euro in più/meno per costi pendenti (affitto, transazioni in corso) — è normale.
-        </p>
+        <div id="cashBreakdown" style="font-family:var(--mono);font-size:.62rem;color:var(--muted);margin-bottom:10px;line-height:1.7;padding:8px 10px;background:var(--bg);border-radius:4px;border:1px solid var(--line)"></div>
         <div class="money-row">
           <div class="money-input-wrap">
             <input type="number" id="cashInput" placeholder="Nuovo importo" min="0" step="1"
@@ -527,19 +525,27 @@ footer {
     <div class="group">
       <div class="group-title">🏪 &nbsp;negozio e gioco</div>
       <div class="field-row">
-        <div class="fr-label"><strong>Reputazione</strong>fame points nel gioco</div>
+        <div class="fr-label"><strong>Reputazione</strong>fame points — scala fama negozio</div>
         <input class="fr-input" type="number" id="statRep" min="0" oninput="markDirty()">
       </div>
       <div class="field-row">
-        <div class="fr-label"><strong>Cariche Expert</strong>numero utilizzi disponibili</div>
+        <div class="fr-label"><strong>Cariche Expert</strong>perizie disponibili</div>
         <input class="fr-input" type="number" id="statExpert" min="0" oninput="markDirty()">
       </div>
       <div class="field-row">
-        <div class="fr-label"><strong>Cariche Brainwasher</strong>numero utilizzi disponibili</div>
+        <div class="fr-label"><strong>Cariche Brainwasher</strong>utilizzi disponibili</div>
         <input class="fr-input" type="number" id="statBrain" min="0" oninput="markDirty()">
       </div>
       <div class="field-row">
-        <div class="fr-label"><strong>Giorno corrente</strong>avanza nel tempo</div>
+        <div class="fr-label"><strong>Affitto negozio</strong>costo mensile</div>
+        <input class="fr-input wide" type="number" id="statRent" min="0" oninput="markDirty()">
+      </div>
+      <div class="field-row">
+        <div class="fr-label"><strong>Costo settimanale</strong>stipendi + spese fisse</div>
+        <input class="fr-input wide" type="number" id="statWeekly" min="0" oninput="markDirty()">
+      </div>
+      <div class="field-row">
+        <div class="fr-label"><strong>Giorno corrente</strong>avanza nel calendario</div>
         <input class="fr-input" type="number" id="statDay" min="1" oninput="markDirty()">
       </div>
     </div>
@@ -630,17 +636,28 @@ function encodeXOR(jsonStr) {
 
 /* ─── Popola editor ────────────────────────────── */
 function populateEditor() {
-  const d  = saveData;
-  const p  = d.player;
-  const cash = d.cash.value + d.cash.offset;
+  const d    = saveData;
+  const p    = d.player;
+  const rawVal  = d.cash.value;
+  const offset  = d.cash.offset;
+  const cash    = rawVal + offset;
 
   // Player strip
   const avatars = ['🎰','🃏','💼','🧳','💎','🪙','🏆','🎩'];
-  document.getElementById('avatarEl').textContent = avatars[p.avatarId] || '🎰';
+  document.getElementById('avatarEl').textContent   = avatars[p.avatarId] || '🎰';
   document.getElementById('playerName').textContent = p.nickname || 'Giocatore';
-  document.getElementById('metaDay').textContent  = d.day;
-  document.getElementById('metaDiff').textContent = ['Normale','Facile','Difficile'][d.difficulty] ?? d.difficulty;
-  document.getElementById('metaRep').textContent  = p.reputation;
+  document.getElementById('metaDay').textContent    = d.day;
+  document.getElementById('metaDiff').textContent   = ['Normale','Facile','Difficile'][d.difficulty] ?? d.difficulty;
+  document.getElementById('metaRep').textContent    = p.reputation;
+
+  // Nota cash breakdown
+  const sign = offset >= 0 ? '+' : '';
+  const noteEl = document.getElementById('cashBreakdown');
+  noteEl.innerHTML =
+    `valore base: <span style="color:var(--txt)">${fmtMoney(rawVal)}</span> &nbsp;` +
+    `offset: <span style="color:${offset < 0 ? 'var(--red)' : 'var(--green)'}">${sign}${fmtMoney(offset)}</span><br>` +
+    `saldo file: <span style="color:var(--gold)">${fmtMoney(cash)}</span> &nbsp;` +
+    `<span style="opacity:.6">— il gioco può mostrare ±qualche centinaio per transazioni non ancora salvate</span>`;
 
   // Soldi
   document.getElementById('moneyDisplay').textContent = fmtMoney(cash);
@@ -656,6 +673,8 @@ function populateEditor() {
   document.getElementById('statRep').value    = p.reputation;
   document.getElementById('statExpert').value = d.shop.expertCharges;
   document.getElementById('statBrain').value  = d.shop.brainwasherCharges;
+  document.getElementById('statRent').value   = d.shop.baseShop.rentCost;
+  document.getElementById('statWeekly').value = d.shop.baseShop.weeklyCost;
   document.getElementById('statDay').value    = d.day;
 }
 
@@ -692,8 +711,10 @@ function applyChanges() {
 
   // Negozio e altro
   p.reputation = parseInt(document.getElementById('statRep').value)    || 0;
-  d.shop.expertCharges       = parseInt(document.getElementById('statExpert').value) || 0;
-  d.shop.brainwasherCharges  = parseInt(document.getElementById('statBrain').value)  || 0;
+  d.shop.expertCharges          = parseInt(document.getElementById('statExpert').value)  || 0;
+  d.shop.brainwasherCharges     = parseInt(document.getElementById('statBrain').value)   || 0;
+  d.shop.baseShop.rentCost      = parseInt(document.getElementById('statRent').value)    || d.shop.baseShop.rentCost;
+  d.shop.baseShop.weeklyCost    = parseInt(document.getElementById('statWeekly').value)  || d.shop.baseShop.weeklyCost;
   d.day = parseInt(document.getElementById('statDay').value) || d.day;
 
   // Serializza e cifra
