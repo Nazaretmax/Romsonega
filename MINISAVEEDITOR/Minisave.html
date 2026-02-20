@@ -646,6 +646,8 @@ footer {
         <div class="fr-label"><strong>Slot Clienti</strong>clienti max simultanei</div>
         <input class="fr-input" type="number" id="statCustSlots" min="1" max="99" oninput="markDirty()">
       </div>
+      <div class="field-row">
+        <div class="fr-label"><strong>Affitto negozio</strong>costo mensile</div>
         <input class="fr-input wide" type="number" id="statRent" min="0" oninput="markDirty()">
       </div>
       <div class="field-row">
@@ -791,10 +793,10 @@ function populateEditor() {
   document.getElementById('cashInput').value = cash;
 
   // Abilità
-  document.getElementById('statCharisma').value   = p.charisma;
-  document.getElementById('statCompetence').value = p.competence;
-  document.getElementById('statInsight').value    = p.insight;
-  document.getElementById('statLuck').value       = p.luck;
+  document.getElementById('statCharisma').value   = Math.min(p.charisma,   8);
+  document.getElementById('statCompetence').value = Math.min(p.competence, 8);
+  document.getElementById('statInsight').value    = Math.min(p.insight,    8);
+  document.getElementById('statLuck').value       = Math.min(p.luck,       8);
 
   // Negozio e altro
   document.getElementById('statRep').value    = p.reputation;
