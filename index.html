@@ -363,6 +363,12 @@
             <input type="checkbox" id="englishOnly" style="width:auto">
             <span>Estrai solo testo inglese (🇬🇧 rilevamento automatico)</span>
         </label>
+        <div id="repointMemory" style="display:none;font-size:0.7rem;color:var(--accent);margin-top:0.5rem;padding:0.5rem;background:var(--bg);border-radius:0.25rem;border-left:2px solid var(--accent)">
+            🧠 Memoria: <strong id="repointCount">0</strong> offset repointed salvati
+            <button onclick="clearRepointMemory()" style="margin-left:0.5rem;padding:0.25rem 0.5rem;font-size:0.65rem;width:auto;background:var(--danger)">
+                🗑️ Cancella memoria
+            </button>
+        </div>
         <button onclick="scan()">Scansiona ROM</button>
         
         <div class="progress" id="scanProgress">
@@ -462,6 +468,7 @@
     let rom = null;
     let scanResults = [];
     let uniqueStrings = new Set();
+    let repointedOffsets = new Set(); // Traccia offset repointed per skipparli in scansione
 
     // ══════════════════════════════════════════════════════════
     // AUTOSAVE SYSTEM con IndexedDB
@@ -544,7 +551,8 @@
             timestamp: Date.now(),
             lastIndex: idx,
             stats: stats,
-            totalLines: lines.length
+            totalLines: lines.length,
+            repointedOffsets: Array.from(repointedOffsets) // Salva offset repointed
         };
         localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(state));
     }
@@ -552,12 +560,21 @@
     // Carica stato patch
     function loadState() {
         const saved = localStorage.getItem(AUTOSAVE_KEY);
-        return saved ? JSON.parse(saved) : null;
+        if (saved) {
+            const state = JSON.parse(saved);
+            // Ripristina offset repointed
+            if (state.repointedOffsets) {
+                repointedOffsets = new Set(state.repointedOffsets);
+            }
+            return state;
+        }
+        return null;
     }
 
     // Cancella tutto
     async function clearState() {
         localStorage.removeItem(AUTOSAVE_KEY);
+        repointedOffsets.clear(); // Reset memoria repoint
         if (db) {
             const tx = db.transaction(['files'], 'readwrite');
             const store = tx.objectStore('files');
@@ -576,6 +593,9 @@
                 `Trovato salvataggio da ${elapsed < 1 ? '<1' : elapsed} minuti fa.\nProcessate ${state.lastIndex}/${state.totalLines} stringhe.\n\nROM e file TXT salvati automaticamente.`;
             document.getElementById('resumeModal').classList.add('active');
         }
+        
+        // Aggiorna UI memoria repoint
+        updateRepointMemoryUI();
     });
 
     // Cancella e ricomincia
@@ -736,6 +756,29 @@
         return false;
     }
 
+    // Aggiorna UI memoria repoint
+    function updateRepointMemoryUI() {
+        const memoryDiv = document.getElementById('repointMemory');
+        const countSpan = document.getElementById('repointCount');
+        
+        if (repointedOffsets.size > 0) {
+            memoryDiv.style.display = 'block';
+            countSpan.textContent = repointedOffsets.size;
+        } else {
+            memoryDiv.style.display = 'none';
+        }
+    }
+
+    // Cancella memoria repoint
+    function clearRepointMemory() {
+        if (confirm(`Cancellare ${repointedOffsets.size} offset dalla memoria?\n\nQuesti offset non verranno più skippati durante la scansione.`)) {
+            repointedOffsets.clear();
+            updateRepointMemoryUI();
+            toast('Memoria cancellata', 'success');
+            log('🗑️ Memoria repoint cancellata', 'info');
+        }
+    }
+
     // ══════════════════════════════════════════════════════════
     // SCAN
     // ══════════════════════════════════════════════════════════
@@ -756,7 +799,11 @@
         wrap.classList.add('active');
         fill.style.width = '0%';
         
-        log(`Scansione ${mode} avviata${englishOnly ? ' (SOLO inglese)' : ''}`);
+        log(`Scansione ${mode} avviata${englishOnly ? ' (SOLO inglese)' : ''}`, 'info');
+        
+        if (repointedOffsets.size > 0) {
+            log(`🧠 Memoria: ${repointedOffsets.size} offset repointed verranno skippati`, 'info');
+        }
 
         const START = 0x200000, END = rom.length;
         let i = START, count = 0, rejected = 0, rejectedLang = 0;
@@ -772,6 +819,7 @@
             let limit = Math.min(i + 0x50000, END);
             for(; i < limit; i++) {
                 if(rom[i] >= 0xBB && rom[i] <= 0xD4) {
+                    const currentOffset = i;
                     let s = "", j = i;
                     while(j < rom.length && rom[j] !== 0xFF && s.length < 500) {
                         s += charMap[rom[j]] || '';
@@ -780,6 +828,12 @@
                     
                     // Skippa stringhe vuote o cancellate
                     if (!s || s.trim().length === 0) {
+                        rejected++;
+                        continue;
+                    }
+                    
+                    // SKIPPA se offset è stato repointed (memoria persistente)
+                    if (repointedOffsets.has(currentOffset)) {
                         rejected++;
                         continue;
                     }
@@ -951,10 +1005,11 @@
         if (isShortFile) {
             const confirm = window.confirm(
                 '⚠️ FILE SHORT RILEVATO\n\n' +
-                'Stringhe troppo lunghe verranno SPOSTATE (repoint).\n' +
-                'Le vecchie stringhe verranno cancellate.\n\n' +
-                'ATTENZIONE: Alcuni giochi potrebbero crashare!\n' +
-                'Funziona solo se il gioco usa puntatori.\n\n' +
+                'Sistema IBRIDO attivato:\n' +
+                '• Prova REPOINTING per ogni stringa\n' +
+                '• Se trova puntatori → USA repointing ✅\n' +
+                '• Se NO puntatori → AUTO-TRONCA ✂️\n\n' +
+                'Così funziona SEMPRE, sia con puntatori che senza!\n\n' +
                 'Vuoi procedere?'
             );
             
@@ -963,8 +1018,7 @@
                 return;
             }
             
-            log('🔀 Repointing automatico attivato per file SHORT', 'warning');
-            // NON forziamo overwrite, permettiamo repointing normale
+            log('🤖 Sistema IBRIDO attivato (repoint + auto-truncate)', 'info');
         }
         
         // Salva file TXT in IndexedDB per resume
@@ -1037,7 +1091,7 @@
         const total = lines.length;
         
         let idx = startIdx;
-        let stats = savedStats || { total: 0, overwritten: 0, repointed: 0, failed: 0, protected: 0, noPointers: 0, truncated: 0, deleted: 0 };
+        let stats = savedStats || { total: 0, overwritten: 0, repointed: 0, failed: 0, protected: 0, noPointers: 0, truncated: 0, deleted: 0, autoTruncated: 0 };
 
         log(`Patch ${startIdx > 0 ? 'ripresa' : 'avviata'} da riga ${idx}/${total}`);
         document.getElementById('patchReport').innerHTML = '';
@@ -1084,7 +1138,7 @@
                         stats.overwritten++;
                         stats.truncated++;
                     } else {
-                        // CASO 3: Repointing normale
+                        // CASO 3: Repointing IBRIDO (prova repoint, se fail → tronca)
                         const newOff = findFreeSpace(newBytes.length);
                         if (newOff === -1) {
                             stats.failed++;
@@ -1092,21 +1146,32 @@
                             continue;
                         }
                         
-                        // Scrivi nuova stringa
+                        // Scrivi nuova stringa temporaneamente
                         rom.set(newBytes, newOff);
                         
-                        // CANCELLA vecchia stringa con 0xFF (così non si ritrova in scansione)
-                        const oldLen = maxB + 1;
-                        rom.set(new Uint8Array(oldLen).fill(0xFF), oldOff);
-                        stats.deleted++;
-                        
-                        // Aggiorna puntatori
+                        // PROVA a trovare puntatori
                         const ptrCount = repointPointers(oldOff, newOff);
-                        stats.repointed++;
                         
-                        // Traccia puntatori non trovati
-                        if (ptrCount === 0) {
-                            stats.noPointers++;
+                        if (ptrCount > 0) {
+                            // ✅ HA PUNTATORI - Usa repointing
+                            // CANCELLA vecchia stringa con 0xFF
+                            const oldLen = maxB + 1;
+                            rom.set(new Uint8Array(oldLen).fill(0xFF), oldOff);
+                            stats.deleted++;
+                            repointedOffsets.add(oldOff);
+                            stats.repointed++;
+                        } else {
+                            // ❌ NESSUN PUNTATORE - ROLLBACK e tronca
+                            // Cancella la stringa appena scritta (non serve)
+                            rom.set(new Uint8Array(newBytes.length).fill(0xFF), newOff);
+                            
+                            // TRONCA automaticamente nello spazio originale
+                            const truncated = newBytes.slice(0, maxB);
+                            truncated.push(0xFF);
+                            rom.set(truncated, oldOff);
+                            stats.overwritten++;
+                            stats.truncated++;
+                            stats.autoTruncated++; // Contatore specifico per troncamenti automatici
                         }
                     }
                 } catch(e) {
@@ -1135,15 +1200,16 @@
                 status.textContent = '✅ Completata!';
 
                 const truncPercent = stats.truncated > 0 ? Math.round((stats.truncated / stats.total) * 100) : 0;
+                const autoTruncPercent = stats.autoTruncated > 0 ? Math.round((stats.autoTruncated / stats.total) * 100) : 0;
                 
                 document.getElementById('patchReport').innerHTML = `
                     <div class="report">
                         <div class="report-item"><span>Processate</span><strong>${stats.total}</strong></div>
                         <div class="report-item"><span>✅ In loco</span><strong style="color:var(--success)">${stats.overwritten}</strong></div>
-                        ${stats.truncated > 0 ? `<div class="report-item"><span>✂️ Troncate</span><strong style="color:var(--warning)">${stats.truncated} (${truncPercent}%)</strong></div>` : ''}
+                        ${stats.truncated > 0 ? `<div class="report-item"><span>✂️ Troncate (manuale)</span><strong style="color:var(--warning)">${stats.truncated} (${truncPercent}%)</strong></div>` : ''}
+                        ${stats.autoTruncated > 0 ? `<div class="report-item"><span>🤖 Auto-troncate</span><strong style="color:var(--accent)">${stats.autoTruncated} (${autoTruncPercent}%)</strong></div>` : ''}
                         <div class="report-item"><span>🔀 Repoint</span><strong style="color:var(--accent)">${stats.repointed}</strong></div>
                         ${stats.deleted > 0 ? `<div class="report-item"><span>🗑️ Cancellate</span><strong style="color:var(--success)">${stats.deleted}</strong></div>` : ''}
-                        ${stats.noPointers > 0 ? `<div class="report-item"><span>⚠️ Senza ptr</span><strong style="color:var(--warning)">${stats.noPointers}</strong></div>` : ''}
                         <div class="report-item"><span>🛡️ Protette</span><strong style="color:var(--text-dim)">${stats.protected}</strong></div>
                         ${stats.failed > 0 ? `<div class="report-item"><span>❌ Fallite</span><strong style="color:var(--danger)">${stats.failed}</strong></div>` : ''}
                     </div>`;
@@ -1152,20 +1218,25 @@
                 
                 if (stats.deleted > 0) {
                     log(`🗑️ ${stats.deleted} stringhe vecchie cancellate (non rilevabili in scansione)`, 'success');
+                    log(`🧠 ${repointedOffsets.size} offset salvati in memoria persistente`, 'info');
                 }
+                
+                if (stats.autoTruncated > 0) {
+                    const autoPercent = Math.round((stats.autoTruncated / stats.total) * 100);
+                    log(`🤖 ${stats.autoTruncated} stringhe auto-troncate (${autoPercent}%) - Nessun puntatore trovato`, 'info');
+                    log(`💡 Queste stringhe NON possono usare repointing (tabelle offset fissi)`, 'info');
+                }
+                
+                updateRepointMemoryUI(); // Aggiorna UI memoria
                 
                 if (stats.truncated > 0) {
                     const truncPercent = Math.round((stats.truncated / stats.total) * 100);
-                    log(`✂️ ${stats.truncated} stringhe troncate (${truncPercent}%)`, 'warning');
+                    log(`✂️ ${stats.truncated} stringhe troncate manualmente (${truncPercent}%)`, 'warning');
                     
                     if (truncPercent > 50) {
                         log(`❌ TROPPO TRONCAMENTO: ${truncPercent}%`, 'error');
                         toast(`❌ ${truncPercent}% troncate`, 'error');
                     }
-                }
-                
-                if (stats.noPointers > 0) {
-                    log(`⚠️ ${stats.noPointers} stringhe senza puntatori (potrebbero rimanere inglesi)`, 'warning');
                 }
 
                 const a = document.createElement('a');
