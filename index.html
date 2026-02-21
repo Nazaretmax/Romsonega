@@ -353,6 +353,7 @@
         <input type="file" id="romFile" accept=".gba">
         <div class="info" id="romInfo">⏳ Carica un file .gba</div>
         <button onclick="downloadROM()" id="downloadBtn" style="margin-top:0.5rem" disabled>⬇️ Scarica ROM Patchata</button>
+        <button onclick="fullReset()" style="margin-top:0.5rem;background:var(--danger);font-size:0.75rem">🗑️ Reset Completo (Memoria + Cache)</button>
     </div>
 
     <!-- Scansione -->
@@ -640,6 +641,17 @@
             const info = document.getElementById('romInfo');
             info.innerHTML = `✅ ${e.target.files[0].name} (${mb} MB)`;
             document.getElementById('downloadBtn').disabled = false; // Abilita download
+            
+            // RESET MEMORIA quando carica nuova ROM
+            const hadMemory = repointedOffsets.size > 0;
+            repointedOffsets.clear();
+            updateRepointMemoryUI();
+            
+            if (hadMemory) {
+                log('🗑️ Memoria precedente cancellata (nuova ROM rilevata)', 'warning');
+                toast('⚠️ Memoria resettata - Nuova ROM', 'warning');
+            }
+            
             log('ROM caricata', 'success');
             
             // Salva ROM in IndexedDB per resume automatico
@@ -795,6 +807,29 @@
     function scan() {
         if(!rom) return toast('Carica ROM prima!', 'error');
         
+        // WARNING se memoria presente (potrebbe essere da ROM diversa)
+        if (repointedOffsets.size > 0) {
+            const useMemory = window.confirm(
+                '⚠️ MEMORIA ESISTENTE RILEVATA\n\n' +
+                `Ci sono ${repointedOffsets.size} offset salvati in memoria.\n\n` +
+                'Se hai caricato una ROM DIVERSA, la memoria potrebbe\n' +
+                'mostrare dati SBAGLIATI!\n\n' +
+                'Opzioni:\n' +
+                '• OK = Usa memoria (ROM già patchata)\n' +
+                '• ANNULLA = Reset memoria (ROM nuova)\n\n' +
+                'Cosa vuoi fare?'
+            );
+            
+            if (!useMemory) {
+                repointedOffsets.clear();
+                updateRepointMemoryUI();
+                log('🗑️ Memoria resettata per nuova ROM', 'warning');
+                toast('Memoria cancellata', 'success');
+            } else {
+                log(`🧠 Uso memoria esistente: ${repointedOffsets.size} offset`, 'info');
+            }
+        }
+        
         const mode = document.getElementById('extractMode').value;
         const englishOnly = document.getElementById('englishOnly').checked;
         const body = document.getElementById('resBody');
@@ -921,6 +956,45 @@
         
         toast('ROM salvata!', 'success');
         log('✅ ROM patchata scaricata', 'success');
+    }
+    
+    async function fullReset() {
+        const confirm = window.confirm(
+            '⚠️ RESET COMPLETO\n\n' +
+            'Questo cancellerà:\n' +
+            '• Memoria offset repointed\n' +
+            '• ROM in cache (IndexedDB)\n' +
+            '• File TXT salvati\n' +
+            '• Stato autosave\n\n' +
+            'Usa quando carichi ROM diverse o hai problemi.\n\n' +
+            'Procedere?'
+        );
+        
+        if (!confirm) return;
+        
+        // Cancella memoria offset
+        repointedOffsets.clear();
+        updateRepointMemoryUI();
+        
+        // Cancella localStorage
+        await clearState();
+        
+        // Reset variabili
+        rom = null;
+        scanResults = [];
+        uniqueStrings.clear();
+        romExpansions = 0;
+        
+        // Reset UI
+        document.getElementById('romInfo').innerHTML = '⏳ Carica un file .gba';
+        document.getElementById('downloadBtn').disabled = true;
+        document.getElementById('resBody').innerHTML = '';
+        document.getElementById('patchReport').innerHTML = '';
+        document.getElementById('log').innerHTML = '';
+        
+        toast('✅ Reset completo eseguito', 'success');
+        log('🗑️ Reset completo: memoria, cache e stato cancellati', 'success');
+        log('💡 Ora puoi caricare una nuova ROM senza interferenze', 'info');
     }
 
 
