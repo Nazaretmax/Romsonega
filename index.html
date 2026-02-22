@@ -789,6 +789,12 @@
             // Deve avere almeno QUALCHE lettera
             if (!/[A-Za-z]/.test(str)) return false;
             
+            // BLOCCA GARBAGE GBA (F, B, V, R, W, backslash patterns)
+            // Questi sono codici di controllo GBA, NON testo
+            if (/^[FfBbVvRrWw\\\l]+$/.test(str)) return false; // Solo questi caratteri
+            if (/[Ff]{3,}|[Bb]{3,}/.test(str)) return false;    // 3+ F o B consecutivi
+            if (/^[A-Z][a-z][A-Z][a-z][A-Z]/.test(str)) return false; // CamelCase alternato (garbage)
+            
             // Anti-encoding corrotto estremo
             const accentCount = (str.match(/[À-ÿ]/g) || []).length;
             const normalLetters = (str.match(/[A-Za-z]/g) || []).length;
@@ -797,6 +803,14 @@
             // Anti-pattern grafici totali
             if (/[À-ÿ]{3,}/.test(str)) return false;
             if (/(.)\1{6,}/.test(str)) return false; // 7+ ripetizioni
+            
+            // BLOCCA se rapporto consonanti/vocali impossibile
+            const vowels = (str.match(/[aeiouAEIOU]/g) || []).length;
+            if (normalLetters >= 4) {
+                const vowelRatio = vowels / normalLetters;
+                // Troppo poche vocali (<5%) o troppe (>95%) = garbage
+                if (vowelRatio < 0.05 || vowelRatio > 0.95) return false;
+            }
             
             return true;
         }
@@ -949,13 +963,14 @@
         }
 
         const START = 0x200000, END = rom.length;
-        let i = START, count = 0, rejected = 0, rejectedLang = 0;
+        let i = START, count = 0, rejected = 0, rejectedLang = 0, italianValidCount = 0;
 
         function update() {
             const p = Math.min(100, ((i - START) / (END - START)) * 100);
             fill.style.width = p.toFixed(1) + '%';
             pct.textContent = p.toFixed(0) + '%';
-            status.textContent = `0x${i.toString(16).toUpperCase()} — ${count} trovate${englishOnly ? ` | ${rejectedLang} non-inglese` : ''}`;
+            const langInfo = englishOnly ? ` | ${rejectedLang} escluse` : ` | 🇮🇹 ${italianValidCount}`;
+            status.textContent = `0x${i.toString(16).toUpperCase()} — ${count} trovate${langInfo}`;
         }
 
         function doScan() {
@@ -992,6 +1007,11 @@
                         const off = "0x" + i.toString(16).toUpperCase();
                         const lang = isEnglish(s) ? '🇬🇧' : '🇮🇹';
                         
+                        // Conta italiano se NON è inglese
+                        if (!isEnglish(s)) {
+                            italianValidCount++;
+                        }
+                        
                         // Salva SENZA tag nel risultato
                         scanResults.push({o: off, t: s, b: j - i, lang: lang});
                         
@@ -1007,14 +1027,16 @@
             }
             
             update();
-            document.getElementById('stats').textContent = `✅ ${count} | 🚫 ${rejected}${englishOnly ? ` | 🇮🇹 ${rejectedLang}` : ''}`;
+            const langDisplay = englishOnly ? ` | 🇬🇧 ${rejectedLang} escluse` : ` | 🇮🇹 ${italianValidCount}`;
+            document.getElementById('stats').textContent = `✅ ${count} | 🚫 ${rejected}${langDisplay}`;
             
             if(i < END - 1) requestAnimationFrame(doScan);
             else {
                 fill.style.width = '100%';
                 pct.textContent = '100%';
                 status.textContent = `✅ ${count} stringhe${englishOnly ? ' inglesi' : ''} trovate`;
-                log(`Completata: ${count} valide${englishOnly ? ` (${rejectedLang} non-inglesi escluse)` : ''}`, 'success');
+                const langSummary = englishOnly ? ` (${rejectedLang} non-inglesi escluse)` : ` (${italianValidCount} italiane trovate)`;
+                log(`Completata: ${count} valide${langSummary}`, 'success');
                 toast(`${count} stringhe trovate`, 'success');
                 setTimeout(() => wrap.classList.remove('active'), 3000);
             }
