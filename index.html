@@ -781,87 +781,98 @@
     function isValidText(str, mode) {
         if (!str || str.length < 3) return false;
 
-        // MODALITÀ ALL - FILTRO ULTRA AGGRESSIVO
+        // MODALITÀ ALL - FILTRO BRUTALE (ZERO TOLLERANZA)
         if (mode === 'all') {
             if (str.length < 3) return false;
             
             // ═══════════════════════════════════════════════════════
-            // BLOCCO 1: ACCENTI STRANI (Ê Ô Â Ç Ë Œ ó ô etc.)
+            // BLOCCO IMMEDIATO: Caratteri garbage evidenti
             // ═══════════════════════════════════════════════════════
-            const strangeAccents = (str.match(/[ÊÔÂÇËŒ óôîÎÏŸ]/g) || []).length;
-            if (strangeAccents > 2) return false; // Max 2 accenti strani
+            
+            // BLOCCA qualsiasi accento NON standard (à è é ì ò ù sono OK per italiano)
+            // Ma Ê Ô Â Ë Ç Œ Á Í Ú Û Ã Õ = GARBAGE
+            if (/[ÊÔÂËÇŒÁÍÚÛÃÕ]/i.test(str)) return false;
+            
+            // Puntini con spazi "... ... ..."
+            if (/\.\s*\.\s*\./.test(str)) return false;
+            
+            // Trattini multipli "- - -" o "---"
+            if (/-\s*-\s*-/.test(str) || /---/.test(str)) return false;
+            
+            // Pattern evidenti: "AAË", "URR", "RRN", "NBA" ecc.
+            if (/AAË|URR|RRN|NBA|AAA|zzz|bbb|iii|RRR|EEE/.test(str)) return false;
+            
+            // Sequenze maiuscole senza senso
+            if (/[A-Z]{2}[A-Z\s]{2}[A-Z]{2}/.test(str) && !/\b(THE|AND|FOR|YOU|ARE|WAS|CAN|NOT|BUT|ALL|HAS|HAD)\b/.test(str)) {
+                return false; // "AA NBA URR" tipo pattern
+            }
             
             // ═══════════════════════════════════════════════════════
-            // BLOCCO 2: RIPETIZIONI ECCESSIVE
+            // BLOCCO 1: RIPETIZIONI
             // ═══════════════════════════════════════════════════════
-            // zzzz, AAAA, RRRR, iiii, etc.
-            if (/([A-Za-z])\1{3,}/.test(str)) return false; // 4+ lettere uguali
+            if (/([A-Za-z])\1{2,}/.test(str)) return false; // 3+ uguali (AAA, zzz, iii)
+            if (/([A-Z]{2})\s+\1/.test(str)) return false; // "AA AA"
             
             // ═══════════════════════════════════════════════════════
-            // BLOCCO 3: PATTERN GARBAGE GBA
+            // BLOCCO 2: BACKSLASH ECCESSIVI
             // ═══════════════════════════════════════════════════════
-            if (/^[FfBbVvRrWwÊÔ\\\l]+$/.test(str)) return false;
-            if (/[Ff]{2,}|[Bb]{2,}/.test(str)) return false; // 2+ F o B
-            if (/^[A-Z][a-z][A-Z][a-z][A-Z]/.test(str)) return false; // CamelCase
+            const backslashCount = (str.match(/\\[pnlva]/g) || []).length;
+            if (backslashCount > 2) return false;
             
             // ═══════════════════════════════════════════════════════
-            // BLOCCO 4: TROPPI BACKSLASH CODES
-            // ═══════════════════════════════════════════════════════
-            const backslashCount = (str.match(/\\[pnlv]/g) || []).length;
-            if (backslashCount > 3) return false; // Max 3 codes
-            
-            // ═══════════════════════════════════════════════════════
-            // BLOCCO 5: SPAZI ASSURDI
+            // BLOCCO 3: SPAZI STRANI
             // ═══════════════════════════════════════════════════════
             const spaces = (str.match(/ /g) || []).length;
-            if (spaces > str.length * 0.4) return false; // >40% spazi
-            if (/  {3,}/.test(str)) return false; // 3+ spazi consecutivi
+            if (spaces > str.length * 0.35) return false;
+            if (/\s{3,}/.test(str)) return false;
             
             // ═══════════════════════════════════════════════════════
-            // BLOCCO 6: MIX CASUALE MAIUSCOLE
-            // ═══════════════════════════════════════════════════════
-            const upperCount = (str.match(/[A-Z]/g) || []).length;
-            const lowerCount = (str.match(/[a-z]/g) || []).length;
-            const totalLetters = upperCount + lowerCount;
-            
-            if (totalLetters > 5) {
-                // Se mix 50/50 maiuscole/minuscole = garbage
-                const upperRatio = upperCount / totalLetters;
-                if (upperRatio > 0.3 && upperRatio < 0.7) {
-                    // Mix casuale, controlla se ha senso
-                    if (!/\b[A-Z][a-z]+\b/.test(str)) return false; // No parole normali
-                }
-            }
-            
-            // ═══════════════════════════════════════════════════════
-            // BLOCCO 7: SEQUENZE RIPETUTE TIPO "AA AA", "RR RR"
-            // ═══════════════════════════════════════════════════════
-            if (/([A-Z]{2,})\s+\1/.test(str)) return false; // "AA AA" o "RRR RRR"
-            
-            // ═══════════════════════════════════════════════════════
-            // BLOCCO 8: VOCALI CHECK
+            // BLOCCO 4: VOCALI CHECK SEVERO
             // ═══════════════════════════════════════════════════════
             const vowels = (str.match(/[aeiouAEIOU]/g) || []).length;
-            const normalLetters = (str.match(/[A-Za-z]/g) || []).length;
+            const letters = (str.match(/[A-Za-z]/g) || []).length;
             
-            if (normalLetters >= 4) {
-                const vowelRatio = vowels / normalLetters;
-                if (vowelRatio < 0.1 || vowelRatio > 0.9) return false;
+            if (letters >= 5) {
+                const vowelRatio = vowels / letters;
+                // Più restrittivo: 20-80% vocali
+                if (vowelRatio < 0.20 || vowelRatio > 0.80) return false;
             }
             
             // ═══════════════════════════════════════════════════════
-            // BLOCCO 9: DEVE AVERE ALMENO UNA PAROLA VERA
+            // BLOCCO 5: CONSONANTI CONSECUTIVE
             // ═══════════════════════════════════════════════════════
-            if (!/[A-Za-z]{3,}/.test(str)) return false; // Min 1 parola di 3+ lettere
+            if (/[bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ]{4,}/.test(str)) return false;
             
             // ═══════════════════════════════════════════════════════
-            // BLOCCO 10: ENCODING CORROTTO
+            // BLOCCO 6: DEVE AVERE PAROLA INGLESE VERA
+            // ═══════════════════════════════════════════════════════
+            // Parole comuni inglesi per validazione
+            const commonWords = /\b(the|and|you|that|for|are|with|his|they|this|have|from|was|had|but|what|all|were|when|your|can|said|there|use|her|each|which|she|how|their|will|other|about|out|many|then|them|some|would|make|like|him|into|time|has|look|two|more|write|see|number|way|could|people|than|first|been|call|who|now|find|long|down|day|did|get|come|made|may|part|over|new|sound|take|only|little|work|know|place|year|live|back|give|most|very|after|thing|our|just|name|good|sentence|man|think|say|great|where|help|through|much|before|move|right|boy|old|too|same|tell|does|set|three|want|air|well|also|play|small|end|put|home|read|hand|port|large|spell|add|even|land|here|must|big|high|such|follow|act|why|ask|men|change|went|light|kind|off|need|house|picture|try|again|animal|point|mother|world|near|build|self|earth|father)\b/i;
+            
+            if (!commonWords.test(str)) {
+                // Se non ha parole comuni, deve avere almeno una parola lunga e sensata
+                const words = str.split(/[\s\.,!?;:\-\\]+/);
+                const validWords = words.filter(w => {
+                    if (w.length < 4) return false;
+                    if (!/[aeiouAEIOU]/.test(w)) return false;
+                    if (/[^A-Za-z]/.test(w)) return false;
+                    // Deve avere vocali distribuite (non tutte all'inizio/fine)
+                    const firstHalf = w.substring(0, w.length/2);
+                    const secondHalf = w.substring(w.length/2);
+                    return /[aeiou]/i.test(firstHalf) && /[aeiou]/i.test(secondHalf);
+                });
+                
+                if (validWords.length === 0) return false;
+            }
+            
+            // ═══════════════════════════════════════════════════════
+            // BLOCCO 7: ENCODING CORROTTO
             // ═══════════════════════════════════════════════════════
             const accentCount = (str.match(/[À-ÿ]/g) || []).length;
-            if (normalLetters > 0 && accentCount > normalLetters * 0.3) return false;
+            if (letters > 0 && accentCount > letters * 0.15) return false; // Max 15%
             
-            if (/[À-ÿ]{2,}/.test(str)) return false; // 2+ accenti consecutivi
-            if (/(.)\1{6,}/.test(str)) return false; // 7+ caratteri uguali
+            if (/[À-ÿ]{2,}/.test(str)) return false;
+            if (/(.)\1{5,}/.test(str)) return false;
             
             return true;
         }
