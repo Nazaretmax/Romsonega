@@ -3,153 +3,194 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Save Editor</title>
-
+<title>Unity Save Analyzer Pro</title>
 <style>
-body{
-  margin:0;
-  background:#0f172a;
-  font-family:system-ui;
-  color:white;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  min-height:100vh;
-}
-.box{
-  background:#1e293b;
-  padding:25px;
-  border-radius:15px;
-  width:95%;
-  max-width:420px;
-}
-input,button{
-  width:100%;
-  padding:12px;
-  margin:8px 0;
-  border-radius:8px;
-  border:none;
-}
-button{
-  background:#00ff88;
-  font-weight:bold;
-  cursor:pointer;
-}
-small{opacity:0.6}
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --accent: #10b981;
+    --accent-hover: #059669;
+    --text: #f8fafc;
+    --code-bg: #020617;
+  }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex; justify-content: center; align-items: center; min-height: 100vh;
+  }
+  .container {
+    background: var(--panel); padding: 30px; border-radius: 16px;
+    width: 90%; max-width: 600px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  }
+  h2 { margin-top: 0; text-align: center; color: var(--accent); }
+  
+  .file-drop-area {
+    border: 2px dashed #475569; border-radius: 8px; padding: 15px;
+    text-align: center; margin-bottom: 15px; cursor: pointer; transition: all 0.3s;
+  }
+  .file-drop-area:hover { border-color: var(--accent); background: rgba(16, 185, 129, 0.05); }
+  .file-drop-area input { display: none; }
+  .file-name { display: block; margin-top: 5px; font-size: 0.85em; color: #94a3b8; }
+
+  .actions { display: flex; gap: 10px; margin-bottom: 15px; }
+  button {
+    flex: 1; padding: 12px; border: none; border-radius: 8px;
+    background: var(--accent); color: white; font-weight: bold; font-size: 1rem;
+    cursor: pointer; transition: background 0.2s;
+  }
+  button:hover { background: var(--accent-hover); }
+  button:disabled { background: #475569; cursor: not-allowed; }
+
+  textarea {
+    width: 100%; height: 250px; background: var(--code-bg); color: #22d3ee;
+    border: 1px solid #334155; border-radius: 8px; padding: 15px;
+    font-family: 'Courier New', Courier, monospace; font-size: 0.9rem;
+    resize: vertical; box-sizing: border-box;
+  }
+  .status { text-align: center; margin-top: 10px; font-size: 0.85em; color: #94a3b8; }
 </style>
 </head>
 <body>
 
-<div class="box">
-<h2>🧠 AI Save Editor</h2>
+<div class="container">
+  <h2>🧠 Unity Save Analyzer Pro</h2>
 
-<label>Save 1</label>
-<input type="file" id="file1">
+  <label class="file-drop-area">
+    <span id="label1">📂 Carica Save 1 (Originale)</span>
+    <input type="file" id="file1" accept="*/*">
+    <span class="file-name" id="name1">Nessun file selezionato</span>
+  </label>
 
-<label>Save 2 (opzionale per confronto)</label>
-<input type="file" id="file2">
+  <label class="file-drop-area">
+    <span id="label2">📂 Carica Save 2 (Modificato - per confronto)</span>
+    <input type="file" id="file2" accept="*/*">
+    <span class="file-name" id="name2">Opzionale</span>
+  </label>
 
-<input type="number" id="currentValue" placeholder="Valore attuale">
-<input type="number" id="newValue" placeholder="Nuovo valore">
+  <div class="actions">
+    <button onclick="analyze()" id="btn-analyze">🔍 Analizza File 1</button>
+    <button onclick="compare()" id="btn-compare" disabled>⚖️ Confronta (Cheat Engine)</button>
+  </div>
 
-<button onclick="aiEdit()">MODIFICA INTELLIGENTE</button>
-<button onclick="download()">Scarica Save</button>
-
-<p id="status"></p>
-<small>Rilevamento automatico XOR + tipo dato</small>
+  <textarea id="output" readonly placeholder="I risultati dell'analisi appariranno qui..."></textarea>
+  <div class="status">Analisi euristica Int32/Byte • Rilevamento Header • Ricerca JSON</div>
 </div>
 
 <script>
+let buf1 = null;
+let buf2 = null;
 
-let buf1=null;
-let buf2=null;
+const setupFileInput = (id, varName, nameId, btnId) => {
+  document.getElementById(id).addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    document.getElementById(nameId).innerText = `${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+    window[varName] = await readFileAsync(file);
+    
+    if (buf1 && buf2) document.getElementById("btn-compare").disabled = false;
+  });
+};
 
-document.getElementById("file1").addEventListener("change",e=>{
-  const r=new FileReader();
-  r.onload=()=>buf1=new Uint8Array(r.result);
-  r.readAsArrayBuffer(e.target.files[0]);
-});
+setupFileInput("file1", "buf1", "name1");
+setupFileInput("file2", "buf2", "name2", "btn-compare");
 
-document.getElementById("file2").addEventListener("change",e=>{
-  const r=new FileReader();
-  r.onload=()=>buf2=new Uint8Array(r.result);
-  r.readAsArrayBuffer(e.target.files[0]);
-});
+const readFileAsync = (file) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(new Uint8Array(reader.result));
+    reader.readAsArrayBuffer(file);
+  });
+};
 
-function detectBestXOR(buffer){
-  let bestKey=0;
-  let bestScore=0;
-
-  for(let key=0;key<256;key++){
-    let score=0;
-    for(let i=0;i<200 && i<buffer.length;i++){
-      let val=buffer[i]^key;
-      if(val>=32 && val<=126) score++;
-    }
-    if(score>bestScore){
-      bestScore=score;
-      bestKey=key;
-    }
-  }
-  return bestKey;
+function extractReadableStrings(buffer, maxLength = 2000) {
+    const slice = buffer.slice(0, maxLength);
+    // Converte in stringa ignorando caratteri non stampabili in modo efficiente
+    const str = Array.from(slice).map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : '.').join('');
+    // Estrae parole di almeno 4 lettere
+    const matches = str.match(/[a-zA-Z0-9_{}\[\]":\-]{4,}/g);
+    return matches ? matches.slice(0, 15).join(" | ") : "Nessuna stringa leggibile trovata.";
 }
 
-function aiEdit(){
-  if(!buf1) return alert("Carica almeno Save 1");
-
-  let current=parseInt(document.getElementById("currentValue").value);
-  let newVal=parseInt(document.getElementById("newValue").value);
-
-  let xor=detectBestXOR(buf1);
-
-  let changes=0;
-
-  for(let i=0;i<buf1.length-3;i++){
-
-    // 1 BYTE
-    let val1=buf1[i]^xor;
-    if(val1===current && current>0 && current<10000000){
-      buf1[i]=(newVal^xor);
-      changes++;
-    }
-
-    // INT32
-    let b0=buf1[i]^xor;
-    let b1=buf1[i+1]^xor;
-    let b2=buf1[i+2]^xor;
-    let b3=buf1[i+3]^xor;
-
-    let num=b0|(b1<<8)|(b2<<16)|(b3<<24);
-
-    if(num===current && current>0 && current<10000000){
-      buf1[i]=(newVal & 0xFF)^xor;
-      buf1[i+1]=((newVal>>8)&0xFF)^xor;
-      buf1[i+2]=((newVal>>16)&0xFF)^xor;
-      buf1[i+3]=((newVal>>24)&0xFF)^xor;
-      changes++;
-    }
-
-    // Modalità confronto
-    if(buf2 && i<buf2.length){
-      if(buf1[i]!==buf2[i]){
-        // priorità alle differenze reali
-      }
-    }
+function analyze() {
+  if (!buf1) {
+    document.getElementById("output").value = "❌ Errore: Devi prima caricare il Save 1.";
+    return;
   }
 
-  document.getElementById("status").innerText=
-    "XOR rilevato: "+xor+" | Modifiche: "+changes;
+  let out = "=== 📊 ANALISI STRUTTURALE FILE 1 ===\n\n";
+  out += `📦 Dimensione: ${buf1.length} bytes\n`;
+
+  // Controllo Header Comuni
+  if (buf1[0] === 0x1F && buf1[1] === 0x8B) out += "🗜️ Compressione: GZIP rilevata.\n";
+  else if (buf1[0] === 0x78 && (buf1[1] === 0x01 || buf1[1] === 0x9C || buf1[1] === 0xDA)) out += "🗜️ Compressione: ZLIB (Deflate) rilevata.\n";
+  else if (buf1[0] === 0x7B || buf1[0] === 0x5B) out += "📄 Formato: Possibile JSON rilevato come base.\n";
+  else out += "❓ Compressione: Nessuna firma standard (Possibile file binario puro o XORed).\n";
+
+  // Ricerca pattern Unity
+  const sampleText = new TextDecoder("utf-8", { fatal: false }).decode(buf1.slice(0, 5000));
+  if (sampleText.includes("Unity") || sampleText.includes("Assembly-CSharp")) {
+    out += "🎮 Motore: Rilevate firme di Unity Engine / Mono.\n";
+  }
+  if (sampleText.includes("PlayerPrefs") || sampleText.includes("{\"")) {
+    out += "💾 Dati: Rilevata possibile struttura dati serializzata (JSON/Prefs).\n";
+  }
+
+  out += "\n=== 🔎 PRIME STRINGHE LEGGIBILI (Estratto) ===\n";
+  out += extractReadableStrings(buf1) + "\n";
+
+  document.getElementById("output").value = out;
 }
 
-function download(){
-  if(!buf1) return;
-  const blob=new Blob([buf1],{type:"application/octet-stream"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="edited_save.dat";
-  a.click();
-}
+function compare() {
+  if (!buf1 || !buf2) return;
 
+  let out = "=== ⚖️ CONFRONTO SAVE (MODALITÀ CHEAT ENGINE) ===\n\n";
+  const minLen = Math.min(buf1.length, buf2.length);
+  
+  if (buf1.length !== buf2.length) {
+    out += `⚠️ Attenzione: I file hanno dimensioni diverse (${buf1.length} vs ${buf2.length}).\nIl confronto si fermerà al più corto.\n\n`;
+  }
+
+  let diffs = [];
+  for (let i = 0; i < minLen; i++) {
+    if (buf1[i] !== buf2[i]) diffs.push(i);
+  }
+
+  out += `🎯 Trovate ${diffs.length} differenze tra i file.\n\n`;
+
+  // Logica Intelligente: Raggruppa i byte adiacenti (cerca valori Int32/Int16)
+  let groupedDiffs = [];
+  for(let i = 0; i < diffs.length; i++) {
+    let currentOffset = diffs[i];
+    let runLength = 1;
+    
+    // Controlla se i byte successivi sono modificati e adiacenti (per formare un intero a 32bit o 16bit)
+    while (i + 1 < diffs.length && diffs[i+1] === currentOffset + runLength && runLength < 4) {
+      runLength++;
+      i++;
+    }
+
+    if (runLength === 4 && currentOffset + 4 <= minLen) {
+        // Legge come Int32 (Little Endian - standard x86/Unity)
+        const dv1 = new DataView(buf1.buffer, currentOffset, 4);
+        const dv2 = new DataView(buf2.buffer, currentOffset, 4);
+        groupedDiffs.push(`Offset 0x${currentOffset.toString(16).toUpperCase()} (Int32): ${dv1.getInt32(0, true)} ➔ ${dv2.getInt32(0, true)}`);
+    } else {
+        // Legge come singolo Byte
+        groupedDiffs.push(`Offset 0x${currentOffset.toString(16).toUpperCase()} (1 Byte): ${buf1[currentOffset]} ➔ ${buf2[currentOffset]}`);
+    }
+  }
+
+  out += "=== 🔍 DETTAGLIO VARIAZIONI (Prime 50) ===\n";
+  if (groupedDiffs.length === 0) {
+      out += "I file sono identici.";
+  } else {
+      out += groupedDiffs.slice(0, 50).join("\n");
+      if (groupedDiffs.length > 50) out += `\n...e altre ${groupedDiffs.length - 50} modifiche omesse per leggibilità.`;
+  }
+
+  document.getElementById("output").value = out;
+}
 </script>
 </body>
 </html>
