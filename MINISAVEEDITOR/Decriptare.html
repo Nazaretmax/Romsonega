@@ -3,180 +3,120 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Save Editor ELITE</title>
+<title>Auto Smart Save Editor</title>
 
 <style>
-:root{
-  --bg:#0f172a;
-  --card:#1e293b;
-  --accent:#00ff88;
-  --text:#e2e8f0;
+body{
+  margin:0;
+  background:#0f172a;
+  font-family:system-ui;
+  color:white;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
 }
-body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text);}
-header{padding:15px;text-align:center;font-size:20px;font-weight:bold;background:#0b1220;border-bottom:2px solid var(--accent);}
-.container{padding:15px;max-width:1100px;margin:auto;}
-.card{background:var(--card);padding:15px;border-radius:12px;margin-bottom:15px;box-shadow:0 0 10px rgba(0,0,0,0.4);}
-button{background:var(--accent);border:none;padding:10px;border-radius:8px;font-weight:bold;cursor:pointer;margin:5px 0;}
-input,textarea{width:100%;padding:8px;border-radius:8px;border:none;margin:5px 0;}
-textarea{height:200px;background:#000;color:#0f0;font-family:monospace;}
+.box{
+  background:#1e293b;
+  padding:30px;
+  border-radius:15px;
+  width:90%;
+  max-width:400px;
+}
+input,button{
+  width:100%;
+  padding:12px;
+  margin:10px 0;
+  border-radius:8px;
+  border:none;
+}
+button{
+  background:#00ff88;
+  font-weight:bold;
+  cursor:pointer;
+}
 small{opacity:0.7}
 </style>
 </head>
-
 <body>
 
-<header>🔥 Save Editor ELITE - Offline</header>
+<div class="box">
+<h2>🔥 Save Editor Smart</h2>
 
-<div class="container">
-
-<div class="card">
-<h3>📂 Carica Save</h3>
 <input type="file" id="fileInput">
-<p id="fileInfo"></p>
-</div>
 
-<div class="card">
-<h3>🔎 Ricerca Valore</h3>
-<input type="number" id="searchValue" placeholder="Es: 56">
-<button onclick="searchByte()">Cerca 1 Byte</button>
-<button onclick="searchInt32()">Cerca Int32 (4 byte)</button>
-<p id="searchResult"></p>
-</div>
-
-<div class="card">
-<h3>💰 Rilevamento Automatico Soldi</h3>
-<small>Scansiona per numeri realistici (1 - 9999999)</small>
-<button onclick="detectMoney()">Scansiona</button>
-<p id="moneyResult"></p>
-</div>
-
-<div class="card">
-<h3>🔐 XOR Decoder Automatico</h3>
-<small>Prova chiavi 1-255 automaticamente</small>
-<button onclick="autoXOR()">Avvia Auto XOR</button>
-<p id="xorResult"></p>
-</div>
-
-<div class="card">
-<h3>✏️ Modifica Valore</h3>
-<input type="number" id="offsetInput" placeholder="Offset">
+<input type="number" id="currentValue" placeholder="Valore attuale (es: 56)">
 <input type="number" id="newValue" placeholder="Nuovo valore">
-<button onclick="modifyInt32()">Modifica Int32</button>
-</div>
 
-<div class="card">
-<h3>💾 Salva Offset Trovati</h3>
-<button onclick="saveOffsets()">Esporta Offset JSON</button>
-</div>
+<button onclick="smartEdit()">MODIFICA AUTOMATICAMENTE</button>
 
-<div class="card">
-<h3>📜 HEX Viewer</h3>
-<button onclick="showHex()">Mostra HEX</button>
-<textarea id="output"></textarea>
-</div>
+<button onclick="downloadFile()">Scarica Save</button>
 
+<p id="status"></p>
+<small>Prova automaticamente tutte le chiavi XOR</small>
 </div>
 
 <script>
-let fileBuffer = null;
-let foundOffsets = [];
 
-document.getElementById("fileInput").addEventListener("change", function(e){
-  const reader = new FileReader();
-  reader.onload = function(){
-    fileBuffer = new Uint8Array(reader.result);
-    document.getElementById("fileInfo").innerText =
-      "File caricato: " + fileBuffer.length + " bytes";
-  };
+let buffer=null;
+
+document.getElementById("fileInput").addEventListener("change",e=>{
+  const reader=new FileReader();
+  reader.onload=()=>buffer=new Uint8Array(reader.result);
   reader.readAsArrayBuffer(e.target.files[0]);
 });
 
-function searchByte(){
-  let value = parseInt(document.getElementById("searchValue").value);
-  foundOffsets = [];
-  for(let i=0;i<fileBuffer.length;i++){
-    if(fileBuffer[i]===value) foundOffsets.push(i);
-  }
-  document.getElementById("searchResult").innerText =
-    "Trovati: " + foundOffsets.join(", ");
-}
+function smartEdit(){
+  if(!buffer) return alert("Carica un file");
 
-function searchInt32(){
-  let value = parseInt(document.getElementById("searchValue").value);
-  foundOffsets = [];
-  for(let i=0;i<fileBuffer.length-3;i++){
-    let num = fileBuffer[i] |
-              (fileBuffer[i+1]<<8) |
-              (fileBuffer[i+2]<<16) |
-              (fileBuffer[i+3]<<24);
-    if(num===value) foundOffsets.push(i);
-  }
-  document.getElementById("searchResult").innerText =
-    "Int32 trovati: " + foundOffsets.join(", ");
-}
+  let current=parseInt(document.getElementById("currentValue").value);
+  let newVal=parseInt(document.getElementById("newValue").value);
 
-function detectMoney(){
-  foundOffsets = [];
-  for(let i=0;i<fileBuffer.length-3;i++){
-    let num = fileBuffer[i] |
-              (fileBuffer[i+1]<<8) |
-              (fileBuffer[i+2]<<16) |
-              (fileBuffer[i+3]<<24);
-    if(num>0 && num<9999999) foundOffsets.push(i);
-  }
-  document.getElementById("moneyResult").innerText =
-    "Possibili soldi a offset: " + foundOffsets.slice(0,20).join(", ");
-}
+  let totalChanges=0;
 
-function autoXOR(){
-  let readableCount=0;
-  let bestKey=0;
+  for(let xor=0;xor<256;xor++){
 
-  for(let key=1;key<256;key++){
-    let count=0;
-    for(let i=0;i<200 && i<fileBuffer.length;i++){
-      let decoded=fileBuffer[i]^key;
-      if(decoded>=32 && decoded<=126) count++;
+    // Scansione 1 BYTE
+    for(let i=0;i<buffer.length;i++){
+      if((buffer[i]^xor)===current){
+        buffer[i]=(newVal^xor);
+        totalChanges++;
+      }
     }
-    if(count>readableCount){
-      readableCount=count;
-      bestKey=key;
+
+    // Scansione INT32
+    for(let i=0;i<buffer.length-3;i++){
+      let b0=buffer[i]^xor;
+      let b1=buffer[i+1]^xor;
+      let b2=buffer[i+2]^xor;
+      let b3=buffer[i+3]^xor;
+
+      let num=b0|(b1<<8)|(b2<<16)|(b3<<24);
+
+      if(num===current){
+        buffer[i]=(newVal & 0xFF)^xor;
+        buffer[i+1]=((newVal>>8)&0xFF)^xor;
+        buffer[i+2]=((newVal>>16)&0xFF)^xor;
+        buffer[i+3]=((newVal>>24)&0xFF)^xor;
+        totalChanges++;
+      }
     }
   }
 
-  document.getElementById("xorResult").innerText =
-    "Chiave XOR probabile: " + bestKey;
+  document.getElementById("status").innerText=
+    "Modifiche effettuate: "+totalChanges;
 }
 
-function modifyInt32(){
-  let offset=parseInt(document.getElementById("offsetInput").value);
-  let value=parseInt(document.getElementById("newValue").value);
-
-  fileBuffer[offset]=value & 0xFF;
-  fileBuffer[offset+1]=(value>>8)&0xFF;
-  fileBuffer[offset+2]=(value>>16)&0xFF;
-  fileBuffer[offset+3]=(value>>24)&0xFF;
-
-  alert("Valore modificato!");
-}
-
-function saveOffsets(){
-  const blob=new Blob([JSON.stringify(foundOffsets,null,2)],{type:"application/json"});
+function downloadFile(){
+  if(!buffer) return;
+  const blob=new Blob([buffer],{type:"application/octet-stream"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
-  a.download="offsets.json";
+  a.download="edited_save.dat";
   a.click();
 }
 
-function showHex(){
-  let hex="";
-  for(let i=0;i<fileBuffer.length;i++){
-    hex+=fileBuffer[i].toString(16).padStart(2,"0")+" ";
-    if((i+1)%16===0) hex+="\n";
-  }
-  document.getElementById("output").value=hex;
-}
 </script>
 
 </body>
-    </html>
+</html>
