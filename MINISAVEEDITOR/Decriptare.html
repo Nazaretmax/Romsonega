@@ -1,196 +1,559 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Unity Save Analyzer Pro</title>
-<style>
-  :root {
-    --bg: #0f172a;
-    --panel: #1e293b;
-    --accent: #10b981;
-    --accent-hover: #059669;
-    --text: #f8fafc;
-    --code-bg: #020617;
-  }
-  body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    display: flex; justify-content: center; align-items: center; min-height: 100vh;
-  }
-  .container {
-    background: var(--panel); padding: 30px; border-radius: 16px;
-    width: 90%; max-width: 600px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-  }
-  h2 { margin-top: 0; text-align: center; color: var(--accent); }
-  
-  .file-drop-area {
-    border: 2px dashed #475569; border-radius: 8px; padding: 15px;
-    text-align: center; margin-bottom: 15px; cursor: pointer; transition: all 0.3s;
-  }
-  .file-drop-area:hover { border-color: var(--accent); background: rgba(16, 185, 129, 0.05); }
-  .file-drop-area input { display: none; }
-  .file-name { display: block; margin-top: 5px; font-size: 0.85em; color: #94a3b8; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unity Save Analyzer Pro - Ottimizzato</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #28a745;
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+            --card-bg: #fff;
+            --border-radius: 12px;
+            --box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
 
-  .actions { display: flex; gap: 10px; margin-bottom: 15px; }
-  button {
-    flex: 1; padding: 12px; border: none; border-radius: 8px;
-    background: var(--accent); color: white; font-weight: bold; font-size: 1rem;
-    cursor: pointer; transition: background 0.2s;
-  }
-  button:hover { background: var(--accent-hover); }
-  button:disabled { background: #475569; cursor: not-allowed; }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
 
-  textarea {
-    width: 100%; height: 250px; background: var(--code-bg); color: #22d3ee;
-    border: 1px solid #334155; border-radius: 8px; padding: 15px;
-    font-family: 'Courier New', Courier, monospace; font-size: 0.9rem;
-    resize: vertical; box-sizing: border-box;
-  }
-  .status { text-align: center; margin-top: 10px; font-size: 0.85em; color: #94a3b8; }
-</style>
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background-color: var(--card-bg);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .file-upload-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .file-upload-box {
+            flex: 1 1 300px;
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .file-upload-box:hover, .file-upload-box.dragover {
+            border-color: var(--primary-color);
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+
+        .file-upload-box input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .icon {
+            font-size: 3em;
+            color: #999;
+            margin-bottom: 10px;
+        }
+
+        .file-label {
+            font-weight: 500;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .file-name {
+            font-size: 0.85em;
+            color: #666;
+            word-break: break-all;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1em;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #218838;
+        }
+
+        .btn-disabled {
+            background-color: #ccc;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .results-section {
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            border: 1px solid #eee;
+        }
+
+        .results-header {
+            font-weight: 500;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+
+        #results-output {
+            white-space: pre-wrap;
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 0.9em;
+            color: #333;
+        }
+
+        .empty-results {
+            text-align: center;
+            color: #999;
+            font-style: italic;
+        }
+
+        @media (max-width: 600px) {
+            .file-upload-container {
+                flex-direction: column;
+            }
+            .actions {
+                flex-direction: column;
+            }
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
 </head>
 <body>
 
 <div class="container">
-  <h2>🧠 Unity Save Analyzer Pro</h2>
+    <header>
+        <h1>🧠 Unity Save Analyzer Pro</h1>
+        <p class="subtitle">Ottimizzato, Intelligente e Semplice da Usare</p>
+    </header>
 
-  <label class="file-drop-area">
-    <span id="label1">📂 Carica Save 1 (Originale)</span>
-    <input type="file" id="file1" accept="*/*">
-    <span class="file-name" id="name1">Nessun file selezionato</span>
-  </label>
+    <div class="file-upload-container">
+        <div class="file-upload-box" id="drop-zone-1">
+            <div class="icon">📂</div>
+            <label for="file1" class="file-label">Carica Save 1 (Originale)</label>
+            <span id="file-name-1" class="file-name">Nessun file selezionato</span>
+            <input type="file" id="file1" accept="*/*">
+        </div>
+        <div class="file-upload-box" id="drop-zone-2">
+            <div class="icon">📂</div>
+            <label for="file2" class="file-label">Carica Save 2 (Modificato)</label>
+            <span id="file-name-2" class="file-name">Opzionale per confronto</span>
+            <input type="file" id="file2" accept="*/*">
+        </div>
+    </div>
 
-  <label class="file-drop-area">
-    <span id="label2">📂 Carica Save 2 (Modificato - per confronto)</span>
-    <input type="file" id="file2" accept="*/*">
-    <span class="file-name" id="name2">Opzionale</span>
-  </label>
+    <div class="actions">
+        <button id="analyze-btn" class="btn btn-primary btn-disabled" disabled>
+            <span style="margin-right: 8px;">🔍</span> Analizza File 1
+        </button>
+        <button id="compare-btn" class="btn btn-secondary btn-disabled" disabled>
+            <span style="margin-right: 8px;">⚖️</span> Confronta (Cheat Engine)
+        </button>
+    </div>
 
-  <div class="actions">
-    <button onclick="analyze()" id="btn-analyze">🔍 Analizza File 1</button>
-    <button onclick="compare()" id="btn-compare" disabled>⚖️ Confronta (Cheat Engine)</button>
-  </div>
-
-  <textarea id="output" readonly placeholder="I risultati dell'analisi appariranno qui..."></textarea>
-  <div class="status">Analisi euristica Int32/Byte • Rilevamento Header • Ricerca JSON</div>
+    <div class="results-section">
+        <div class="results-header">Risultati dell'Analisi</div>
+        <div id="results-output">I risultati dell'analisi appariranno qui...</div>
+    </div>
 </div>
 
 <script>
-let buf1 = null;
-let buf2 = null;
+    // --- Gestione File e Interfaccia ---
+    const file1Input = document.getElementById('file1');
+    const file2Input = document.getElementById('file2');
+    const fileName1Display = document.getElementById('file-name-1');
+    const fileName2Display = document.getElementById('file-name-2');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const compareBtn = document.getElementById('compare-btn');
+    const resultsOutput = document.getElementById('results-output');
+    const dropZone1 = document.getElementById('drop-zone-1');
+    const dropZone2 = document.getElementById('drop-zone-2');
 
-const setupFileInput = (id, varName, nameId, btnId) => {
-  document.getElementById(id).addEventListener("change", async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    document.getElementById(nameId).innerText = `${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
-    window[varName] = await readFileAsync(file);
-    
-    if (buf1 && buf2) document.getElementById("btn-compare").disabled = false;
-  });
-};
+    let file1Data = null;
+    let file2Data = null;
 
-setupFileInput("file1", "buf1", "name1");
-setupFileInput("file2", "buf2", "name2", "btn-compare");
-
-const readFileAsync = (file) => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(new Uint8Array(reader.result));
-    reader.readAsArrayBuffer(file);
-  });
-};
-
-function extractReadableStrings(buffer, maxLength = 2000) {
-    const slice = buffer.slice(0, maxLength);
-    // Converte in stringa ignorando caratteri non stampabili in modo efficiente
-    const str = Array.from(slice).map(b => (b >= 32 && b <= 126) ? String.fromCharCode(b) : '.').join('');
-    // Estrae parole di almeno 4 lettere
-    const matches = str.match(/[a-zA-Z0-9_{}\[\]":\-]{4,}/g);
-    return matches ? matches.slice(0, 15).join(" | ") : "Nessuna stringa leggibile trovata.";
-}
-
-function analyze() {
-  if (!buf1) {
-    document.getElementById("output").value = "❌ Errore: Devi prima caricare il Save 1.";
-    return;
-  }
-
-  let out = "=== 📊 ANALISI STRUTTURALE FILE 1 ===\n\n";
-  out += `📦 Dimensione: ${buf1.length} bytes\n`;
-
-  // Controllo Header Comuni
-  if (buf1[0] === 0x1F && buf1[1] === 0x8B) out += "🗜️ Compressione: GZIP rilevata.\n";
-  else if (buf1[0] === 0x78 && (buf1[1] === 0x01 || buf1[1] === 0x9C || buf1[1] === 0xDA)) out += "🗜️ Compressione: ZLIB (Deflate) rilevata.\n";
-  else if (buf1[0] === 0x7B || buf1[0] === 0x5B) out += "📄 Formato: Possibile JSON rilevato come base.\n";
-  else out += "❓ Compressione: Nessuna firma standard (Possibile file binario puro o XORed).\n";
-
-  // Ricerca pattern Unity
-  const sampleText = new TextDecoder("utf-8", { fatal: false }).decode(buf1.slice(0, 5000));
-  if (sampleText.includes("Unity") || sampleText.includes("Assembly-CSharp")) {
-    out += "🎮 Motore: Rilevate firme di Unity Engine / Mono.\n";
-  }
-  if (sampleText.includes("PlayerPrefs") || sampleText.includes("{\"")) {
-    out += "💾 Dati: Rilevata possibile struttura dati serializzata (JSON/Prefs).\n";
-  }
-
-  out += "\n=== 🔎 PRIME STRINGHE LEGGIBILI (Estratto) ===\n";
-  out += extractReadableStrings(buf1) + "\n";
-
-  document.getElementById("output").value = out;
-}
-
-function compare() {
-  if (!buf1 || !buf2) return;
-
-  let out = "=== ⚖️ CONFRONTO SAVE (MODALITÀ CHEAT ENGINE) ===\n\n";
-  const minLen = Math.min(buf1.length, buf2.length);
-  
-  if (buf1.length !== buf2.length) {
-    out += `⚠️ Attenzione: I file hanno dimensioni diverse (${buf1.length} vs ${buf2.length}).\nIl confronto si fermerà al più corto.\n\n`;
-  }
-
-  let diffs = [];
-  for (let i = 0; i < minLen; i++) {
-    if (buf1[i] !== buf2[i]) diffs.push(i);
-  }
-
-  out += `🎯 Trovate ${diffs.length} differenze tra i file.\n\n`;
-
-  // Logica Intelligente: Raggruppa i byte adiacenti (cerca valori Int32/Int16)
-  let groupedDiffs = [];
-  for(let i = 0; i < diffs.length; i++) {
-    let currentOffset = diffs[i];
-    let runLength = 1;
-    
-    // Controlla se i byte successivi sono modificati e adiacenti (per formare un intero a 32bit o 16bit)
-    while (i + 1 < diffs.length && diffs[i+1] === currentOffset + runLength && runLength < 4) {
-      runLength++;
-      i++;
+    // Funzione per aggiornare lo stato dei pulsanti
+    function updateButtonState() {
+        analyzeBtn.disabled = !file1Data;
+        analyzeBtn.classList.toggle('btn-disabled', !file1Data);
+        
+        compareBtn.disabled = !(file1Data && file2Data);
+        compareBtn.classList.toggle('btn-disabled', !(file1Data && file2Data));
     }
 
-    if (runLength === 4 && currentOffset + 4 <= minLen) {
-        // Legge come Int32 (Little Endian - standard x86/Unity)
-        const dv1 = new DataView(buf1.buffer, currentOffset, 4);
-        const dv2 = new DataView(buf2.buffer, currentOffset, 4);
-        groupedDiffs.push(`Offset 0x${currentOffset.toString(16).toUpperCase()} (Int32): ${dv1.getInt32(0, true)} ➔ ${dv2.getInt32(0, true)}`);
-    } else {
-        // Legge come singolo Byte
-        groupedDiffs.push(`Offset 0x${currentOffset.toString(16).toUpperCase()} (1 Byte): ${buf1[currentOffset]} ➔ ${buf2[currentOffset]}`);
+    // Funzione helper per leggere i file
+    function readFile(file, callback) {
+        const reader = new FileReader();
+        reader.onload = (e) => callback(e.target.result);
+        reader.onerror = (e) => {
+            console.error("Errore durante la lettura del file:", e);
+            resultsOutput.textContent = "Errore durante la lettura del file.";
+        };
+        reader.readAsArrayBuffer(file);
     }
-  }
 
-  out += "=== 🔍 DETTAGLIO VARIAZIONI (Prime 50) ===\n";
-  if (groupedDiffs.length === 0) {
-      out += "I file sono identici.";
-  } else {
-      out += groupedDiffs.slice(0, 50).join("\n");
-      if (groupedDiffs.length > 50) out += `\n...e altre ${groupedDiffs.length - 50} modifiche omesse per leggibilità.`;
-  }
+    // Event listener per il caricamento dei file
+    file1Input.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            fileName1Display.textContent = file.name;
+            readFile(file, (data) => {
+                file1Data = data;
+                updateButtonState();
+                resultsOutput.textContent = "File 1 caricato. Pronto per l'analisi.";
+            });
+        } else {
+            fileName1Display.textContent = "Nessun file selezionato";
+            file1Data = null;
+            updateButtonState();
+        }
+    });
 
-  document.getElementById("output").value = out;
-}
+    file2Input.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            fileName2Display.textContent = file.name;
+            readFile(file, (data) => {
+                file2Data = data;
+                updateButtonState();
+                resultsOutput.textContent = "File 2 caricato. Pronto per il confronto.";
+            });
+        } else {
+            fileName2Display.textContent = "Opzionale per confronto";
+            file2Data = null;
+            updateButtonState();
+        }
+    });
+
+    // Gestione Drag and Drop (opzionale ma consigliata per UX)
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone1.addEventListener(eventName, preventDefaults, false);
+        dropZone2.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone1.addEventListener(eventName, () => dropZone1.classList.add('dragover'), false);
+        dropZone2.addEventListener(eventName, () => dropZone2.classList.add('dragover'), false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone1.addEventListener(eventName, () => dropZone1.classList.remove('dragover'), false);
+        dropZone2.addEventListener(eventName, () => dropZone2.classList.remove('dragover'), false);
+    });
+
+    dropZone1.addEventListener('drop', (e) => {
+        const file = e.dataTransfer.files[0];
+        file1Input.files = e.dataTransfer.files;
+        file1Input.dispatchEvent(new Event('change'));
+    });
+
+    dropZone2.addEventListener('drop', (e) => {
+        const file = e.dataTransfer.files[0];
+        file2Input.files = e.dataTransfer.files;
+        file2Input.dispatchEvent(new Event('change'));
+    });
+
+
+    // --- Logica di Analisi (Ottimizzata e "Intelligente") ---
+
+    analyzeBtn.addEventListener('click', () => {
+        if (!file1Data) return;
+        
+        resultsOutput.textContent = "Analisi in corso...";
+        
+        // Utilizziamo setTimeout per permettere l'aggiornamento dell'UI prima di un'operazione pesante
+        setTimeout(() => {
+            const analysisResult = performSmartAnalysis(file1Data);
+            resultsOutput.textContent = analysisResult;
+        }, 50);
+    });
+
+    compareBtn.addEventListener('click', () => {
+        if (!file1Data || !file2Data) return;
+
+        resultsOutput.textContent = "Confronto in corso...";
+
+        setTimeout(() => {
+            const comparisonResult = performSmartComparison(file1Data, file2Data);
+            resultsOutput.textContent = comparisonResult;
+        }, 50);
+    });
+
+    // Funzione per l'analisi intelligente del singolo file
+    function performSmartAnalysis(buffer) {
+        const dataView = new DataView(buffer);
+        const uint8Array = new Uint8Array(buffer);
+        let report = "=== 🔍 Analisi Intelligente del File 1 ===\n\n";
+
+        // 1. Informazioni di base
+        report += `Dimensioni: ${buffer.byteLength} bytes\n`;
+        
+        // 2. Rilevamento del formato (Euristica)
+        let format = "Sconosciuto (Binario)";
+        let confidence = "Bassa";
+
+        // Controlla per firme comuni
+        if (uint8Array[0] === 0x7B && uint8Array[uint8Array.length - 1] === 0x7D) {
+            format = "JSON (Probabile)";
+            confidence = "Alta";
+        } else if (uint8Array[0] === 0x1F && uint8Array[1] === 0x8B) {
+            format = "GZIP Compresso";
+            confidence = "Molto Alta";
+        } else if (uint8Array[0] === 0x55 && uint8Array[1] === 0x6E && uint8Array[2] === 0x69 && uint8Array[3] === 0x74 && uint8Array[4] === 0x79) {
+            format = "Unity Web Data / Asset Bundle";
+            confidence = "Molto Alta";
+        }
+        // Aggiungi altre firme qui...
+
+        report += `Formato Rilevato: ${format} (Confidenza: ${confidence})\n\n`;
+
+        // 3. Analisi del contenuto
+        if (format.includes("JSON")) {
+            try {
+                const textDecoder = new TextDecoder('utf-8');
+                const jsonString = textDecoder.decode(uint8Array);
+                const jsonObj = JSON.parse(jsonString);
+                report += "--- 📄 Anteprima JSON (Formattata) ---\n";
+                report += JSON.stringify(jsonObj, null, 2).substring(0, 2000) + (jsonString.length > 2000 ? "\n... (troncato)" : "");
+            } catch (e) {
+                report += "⚠️ Errore: Sembra JSON ma il parsing è fallito.\n";
+                report += "--- 📄 Anteprima Testo (Primi 1000 caratteri) ---\n";
+                 const textDecoder = new TextDecoder('utf-8');
+                 report += textDecoder.decode(uint8Array.slice(0, 1000));
+            }
+        } else if (format.includes("Compresso")) {
+            report += "ℹ️ Il file è compresso. Per un'analisi dettagliata, è necessario decomprimerlo.\n";
+            report += "Suggerimento: Prova a rinominare il file con estensione .gz ed estrarlo.\n";
+        } else {
+            // Analisi binaria di base: cerca stringhe leggibili
+            report += "--- 🔤 Stringhe Leggibili Trovate (Min. 4 caratteri) ---\n";
+            let readableStrings = [];
+            let currentString = "";
+            for (let i = 0; i < uint8Array.length; i++) {
+                const byte = uint8Array[i];
+                if (byte >= 32 && byte <= 126) { // Caratteri ASCII stampabili
+                    currentString += String.fromCharCode(byte);
+                } else {
+                    if (currentString.length >= 4) {
+                        readableStrings.push(currentString);
+                    }
+                    currentString = "";
+                }
+            }
+            if (currentString.length >= 4) readableStrings.push(currentString); // Aggiungi l'ultima
+
+            if (readableStrings.length > 0) {
+                report += readableStrings.slice(0, 50).join("\n") + (readableStrings.length > 50 ? `\n... (+ altre ${readableStrings.length - 50} stringhe)` : "");
+            } else {
+                report += "Nessuna stringa leggibile trovata.\n";
+            }
+            
+            report += "\n\n--- 🔢 Anteprima Esadecimale (Primi 256 bytes) ---\n";
+            report += hexDump(uint8Array, 256);
+        }
+
+        return report;
+    }
+
+    // Funzione per il confronto intelligente dei file
+    function performSmartComparison(buffer1, buffer2) {
+        const uint8Array1 = new Uint8Array(buffer1);
+        const uint8Array2 = new Uint8Array(buffer2);
+        let report = "=== ⚖️ Confronto Intelligente (Stile Cheat Engine) ===\n\n";
+
+        if (buffer1.byteLength !== buffer2.byteLength) {
+            report += `⚠️ Attenzione: I file hanno dimensioni diverse!\n`;
+            report += `File 1: ${buffer1.byteLength} bytes\n`;
+            report += `File 2: ${buffer2.byteLength} bytes\n\n`;
+            report += `Il confronto verrà eseguito fino alla lunghezza del file più piccolo.\n`;
+        }
+
+        const minLength = Math.min(buffer1.byteLength, buffer2.byteLength);
+        const differences = [];
+
+        for (let i = 0; i < minLength; i++) {
+            if (uint8Array1[i] !== uint8Array2[i]) {
+                differences.push(i);
+            }
+        }
+
+        if (differences.length === 0) {
+            report += "✅ I file sono identici (per la lunghezza confrontata).\n";
+            return report;
+        }
+
+        report += `Trovate ${differences.length} differenze.\n\n`;
+        report += "--- 📝 Dettagli delle Differenze (Raggruppate) ---\n";
+
+        // Raggruppa le differenze consecutive per un output più pulito
+        let groupedDiffs = [];
+        if (differences.length > 0) {
+            let start = differences[0];
+            let end = differences[0];
+            for (let i = 1; i < differences.length; i++) {
+                if (differences[i] === end + 1) {
+                    end = differences[i];
+                } else {
+                    groupedDiffs.push({ start, end });
+                    start = differences[i];
+                    end = differences[i];
+                }
+            }
+            groupedDiffs.push({ start, end });
+        }
+
+        // Mostra le prime N differenze raggruppate
+        const maxDiffsToShow = 50;
+        for (let i = 0; i < Math.min(groupedDiffs.length, maxDiffsToShow); i++) {
+            const diff = groupedDiffs[i];
+            const length = diff.end - diff.start + 1;
+            const offsetHex = "0x" + diff.start.toString(16).toUpperCase().padStart(8, '0');
+            
+            report += `Offset ${offsetHex} (Lunghezza: ${length}):\n`;
+            
+            // Mostra i valori in esadecimale
+            const val1Hex = Array.from(uint8Array1.slice(diff.start, diff.end + 1)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+            const val2Hex = Array.from(uint8Array2.slice(diff.start, diff.end + 1)).map(b => b.toString(16).padStart(2, '0')).join(' ');
+            report += `  File 1: ${val1Hex}\n`;
+            report += `  File 2: ${val2Hex}\n`;
+
+            // Tentativo di interpretazione intelligente per blocchi piccoli (es. 4 byte = Int32)
+            if (length === 4) {
+                const dataView1 = new DataView(buffer1);
+                const dataView2 = new DataView(buffer2);
+                // Prova Little Endian (comune) e Big Endian
+                const val1LE = dataView1.getInt32(diff.start, true);
+                const val2LE = dataView2.getInt32(diff.start, true);
+                const val1BE = dataView1.getInt32(diff.start, false);
+                const val2BE = dataView2.getInt32(diff.start, false);
+
+                report += `  -> Interpretazione Int32 (Little Endian): ${val1LE} -> ${val2LE}\n`;
+                if (val1LE !== val1BE) {
+                     report += `  -> Interpretazione Int32 (Big Endian):    ${val1BE} -> ${val2BE}\n`;
+                }
+            } else if (length === 8) {
+                 // Potrebbe essere un Double o un Int64. Esempio per Double:
+                 const dataView1 = new DataView(buffer1);
+                 const dataView2 = new DataView(buffer2);
+                 const val1Double = dataView1.getFloat64(diff.start, true); // Assumiamo Little Endian
+                 const val2Double = dataView2.getFloat64(diff.start, true);
+                 report += `  -> Interpretazione Float64 (Double): ${val1Double} -> ${val2Double}\n`;
+            }
+            
+            report += "\n";
+        }
+
+        if (groupedDiffs.length > maxDiffsToShow) {
+            report += `... (+ altri ${groupedDiffs.length - maxDiffsToShow} gruppi di differenze omessi)`;
+        }
+
+        return report;
+    }
+
+    // Funzione di utilità per Hex Dump
+    function hexDump(buffer, length) {
+        let output = "";
+        for (let i = 0; i < Math.min(buffer.length, length); i += 16) {
+            const offset = i.toString(16).padStart(8, '0');
+            const hexBytes = [];
+            const asciiChars = [];
+            for (let j = 0; j < 16; j++) {
+                if (i + j < buffer.length) {
+                    const byte = buffer[i + j];
+                    hexBytes.push(byte.toString(16).padStart(2, '0'));
+                    asciiChars.push(byte >= 32 && byte <= 126 ? String.fromCharCode(byte) : '.');
+                } else {
+                    hexBytes.push("  ");
+                    asciiChars.push(" ");
+                }
+            }
+            output += `${offset}  ${hexBytes.join(' ')}  |${asciiChars.join('')}|\n`;
+        }
+        return output;
+    }
+
 </script>
+
 </body>
 </html>
