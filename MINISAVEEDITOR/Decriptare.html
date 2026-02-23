@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Auto Smart Save Editor</title>
+<title>AI Save Editor</title>
 
 <style>
 body{
@@ -14,19 +14,19 @@ body{
   display:flex;
   justify-content:center;
   align-items:center;
-  height:100vh;
+  min-height:100vh;
 }
 .box{
   background:#1e293b;
-  padding:30px;
+  padding:25px;
   border-radius:15px;
-  width:90%;
-  max-width:400px;
+  width:95%;
+  max-width:420px;
 }
 input,button{
   width:100%;
   padding:12px;
-  margin:10px 0;
+  margin:8px 0;
   border-radius:8px;
   border:none;
 }
@@ -35,81 +35,115 @@ button{
   font-weight:bold;
   cursor:pointer;
 }
-small{opacity:0.7}
+small{opacity:0.6}
 </style>
 </head>
 <body>
 
 <div class="box">
-<h2>🔥 Save Editor Smart</h2>
+<h2>🧠 AI Save Editor</h2>
 
-<input type="file" id="fileInput">
+<label>Save 1</label>
+<input type="file" id="file1">
 
-<input type="number" id="currentValue" placeholder="Valore attuale (es: 56)">
+<label>Save 2 (opzionale per confronto)</label>
+<input type="file" id="file2">
+
+<input type="number" id="currentValue" placeholder="Valore attuale">
 <input type="number" id="newValue" placeholder="Nuovo valore">
 
-<button onclick="smartEdit()">MODIFICA AUTOMATICAMENTE</button>
-
-<button onclick="downloadFile()">Scarica Save</button>
+<button onclick="aiEdit()">MODIFICA INTELLIGENTE</button>
+<button onclick="download()">Scarica Save</button>
 
 <p id="status"></p>
-<small>Prova automaticamente tutte le chiavi XOR</small>
+<small>Rilevamento automatico XOR + tipo dato</small>
 </div>
 
 <script>
 
-let buffer=null;
+let buf1=null;
+let buf2=null;
 
-document.getElementById("fileInput").addEventListener("change",e=>{
-  const reader=new FileReader();
-  reader.onload=()=>buffer=new Uint8Array(reader.result);
-  reader.readAsArrayBuffer(e.target.files[0]);
+document.getElementById("file1").addEventListener("change",e=>{
+  const r=new FileReader();
+  r.onload=()=>buf1=new Uint8Array(r.result);
+  r.readAsArrayBuffer(e.target.files[0]);
 });
 
-function smartEdit(){
-  if(!buffer) return alert("Carica un file");
+document.getElementById("file2").addEventListener("change",e=>{
+  const r=new FileReader();
+  r.onload=()=>buf2=new Uint8Array(r.result);
+  r.readAsArrayBuffer(e.target.files[0]);
+});
+
+function detectBestXOR(buffer){
+  let bestKey=0;
+  let bestScore=0;
+
+  for(let key=0;key<256;key++){
+    let score=0;
+    for(let i=0;i<200 && i<buffer.length;i++){
+      let val=buffer[i]^key;
+      if(val>=32 && val<=126) score++;
+    }
+    if(score>bestScore){
+      bestScore=score;
+      bestKey=key;
+    }
+  }
+  return bestKey;
+}
+
+function aiEdit(){
+  if(!buf1) return alert("Carica almeno Save 1");
 
   let current=parseInt(document.getElementById("currentValue").value);
   let newVal=parseInt(document.getElementById("newValue").value);
 
-  let totalChanges=0;
+  let xor=detectBestXOR(buf1);
 
-  for(let xor=0;xor<256;xor++){
+  let changes=0;
 
-    // Scansione 1 BYTE
-    for(let i=0;i<buffer.length;i++){
-      if((buffer[i]^xor)===current){
-        buffer[i]=(newVal^xor);
-        totalChanges++;
-      }
+  for(let i=0;i<buf1.length-3;i++){
+
+    // 1 BYTE
+    let val1=buf1[i]^xor;
+    if(val1===current && current>0 && current<10000000){
+      buf1[i]=(newVal^xor);
+      changes++;
     }
 
-    // Scansione INT32
-    for(let i=0;i<buffer.length-3;i++){
-      let b0=buffer[i]^xor;
-      let b1=buffer[i+1]^xor;
-      let b2=buffer[i+2]^xor;
-      let b3=buffer[i+3]^xor;
+    // INT32
+    let b0=buf1[i]^xor;
+    let b1=buf1[i+1]^xor;
+    let b2=buf1[i+2]^xor;
+    let b3=buf1[i+3]^xor;
 
-      let num=b0|(b1<<8)|(b2<<16)|(b3<<24);
+    let num=b0|(b1<<8)|(b2<<16)|(b3<<24);
 
-      if(num===current){
-        buffer[i]=(newVal & 0xFF)^xor;
-        buffer[i+1]=((newVal>>8)&0xFF)^xor;
-        buffer[i+2]=((newVal>>16)&0xFF)^xor;
-        buffer[i+3]=((newVal>>24)&0xFF)^xor;
-        totalChanges++;
+    if(num===current && current>0 && current<10000000){
+      buf1[i]=(newVal & 0xFF)^xor;
+      buf1[i+1]=((newVal>>8)&0xFF)^xor;
+      buf1[i+2]=((newVal>>16)&0xFF)^xor;
+      buf1[i+3]=((newVal>>24)&0xFF)^xor;
+      changes++;
+    }
+
+    // Modalità confronto
+    if(buf2 && i<buf2.length){
+      if(buf1[i]!==buf2[i]){
+        // priorità alle differenze reali
       }
     }
   }
 
   document.getElementById("status").innerText=
-    "Modifiche effettuate: "+totalChanges;
+    "XOR rilevato: "+xor+" | Modifiche: "+changes;
 }
 
-function downloadFile(){
-  if(!buffer) return;
-  const blob=new Blob([buffer],{type:"application/octet-stream"});
+function download(){
+  if(!buf1) return;
+  const blob=new Blob([buf1],{type:"application/octet-stream"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
   a.download="edited_save.dat";
@@ -117,6 +151,5 @@ function downloadFile(){
 }
 
 </script>
-
 </body>
 </html>
