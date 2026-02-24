@@ -9,56 +9,145 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg: #000; --bar: #08080f; --border: #1a1a28;
-  --accent: #ff3c78; --purple: #7b2ff7; --muted: #555570; --text: #e8e8f0;
+  --bg: #000; --bar: #0c0c18; --border: #1e1e30;
+  --accent: #ff3c78; --purple: #7b2ff7; --cyan: #00e5ff;
+  --muted: #555570; --text: #e8e8f0;
 }
 
 html, body {
   width: 100%; height: 100%;
   background: var(--bg); color: var(--text);
-  font-family: 'Inter', sans-serif;
+  font-family: -apple-system, 'Inter', sans-serif;
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
-/* ── TOP BAR ── */
+/* ══════════════════════════════════════════
+   TOP BAR
+══════════════════════════════════════════ */
 #topbar {
   position: fixed; top: 0; left: 0; right: 0;
-  height: 40px; background: var(--bar);
+  height: 44px;
+  background: var(--bar);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center;
-  padding: 0 0.8rem; gap: 0.8rem;
-  z-index: 100;
+  padding: 0 0.7rem; gap: 0.6rem;
+  z-index: 1000;
 }
+
+#btn-back {
+  background: rgba(255,60,120,0.1);
+  border: 1px solid rgba(255,60,120,0.3);
+  color: var(--accent);
+  font-size: 0.75rem; font-weight: 600;
+  padding: 0.3rem 0.7rem; border-radius: 6px;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  text-decoration: none; display: flex; align-items: center; gap: 0.3rem;
+  transition: background 0.15s;
+}
+#btn-back:hover  { background: rgba(255,60,120,0.22); }
+#btn-back:active { background: var(--accent); color: #000; }
+
 #game-title {
-  flex: 1; font-size: 0.72rem; font-weight: 600;
+  flex: 1; font-size: 0.78rem; font-weight: 600;
   color: var(--text); overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap;
 }
-#btn-back {
-  background: rgba(255,60,120,0.12);
-  border: 1px solid rgba(255,60,120,0.35);
-  color: var(--accent); font-size: 0.72rem; font-weight: 600;
-  padding: 0.3rem 0.75rem; border-radius: 5px;
-  cursor: pointer; white-space: nowrap; flex-shrink: 0;
-  text-decoration: none; display: flex; align-items: center; gap: 0.3rem;
-}
-#btn-back:active { background: var(--accent); color: #000; }
 
-/* ── GAME CONTAINER ── */
+/* Orientation toggle button */
+#btn-orient {
+  background: rgba(123,47,247,0.12);
+  border: 1px solid rgba(123,47,247,0.3);
+  color: var(--purple);
+  font-size: 0.7rem; font-weight: 600;
+  padding: 0.3rem 0.7rem; border-radius: 6px;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  display: flex; align-items: center; gap: 0.35rem;
+  transition: background 0.15s;
+}
+#btn-orient:hover  { background: rgba(123,47,247,0.25); }
+#btn-orient:active { background: var(--purple); color: #fff; }
+
+/* Fullscreen button */
+#btn-fs {
+  background: rgba(0,229,255,0.08);
+  border: 1px solid rgba(0,229,255,0.25);
+  color: var(--cyan);
+  font-size: 0.75rem;
+  padding: 0.3rem 0.55rem; border-radius: 6px;
+  cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center;
+  transition: background 0.15s;
+}
+#btn-fs:hover  { background: rgba(0,229,255,0.18); }
+#btn-fs:active { background: var(--cyan); color: #000; }
+
+/* ══════════════════════════════════════════
+   GAME AREA
+══════════════════════════════════════════ */
 #game-wrap {
   position: fixed;
-  top: 40px; left: 0; right: 0; bottom: 0;
+  top: 44px; left: 0; right: 0; bottom: 0;
   background: #000;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.3s ease;
 }
 
 /*
-  #game is the element EmulatorJS renders into.
-  It must fill the entire game-wrap.
+  DEFAULT (portrait / PC):
+  #game is centered, aspect-ratio 3:2, fills height.
+  On wide screens it is constrained by height.
 */
 #game {
-  width: 100%; height: 100%;
   position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+
+/* ── LANDSCAPE MODE (class added by JS) ── */
+/* On mobile landscape: rotate the game-wrap 90deg */
+body.landscape #game-wrap {
+  /* Nothing special needed on PC — it already has space */
+}
+
+/* On narrow/mobile screens in portrait mode with landscape class:
+   rotate the entire game-wrap */
+@media (max-width: 768px) {
+  body.landscape #game-wrap {
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 100vh;
+    height: 100vw;
+    transform-origin: top left;
+    transform: rotate(90deg) translateX(0) translateY(-100%);
+  }
+  /* hide topbar when rotated so it doesn't cover game */
+  body.landscape #topbar {
+    display: none;
+  }
+  /* floating back button when rotated */
+  body.landscape #float-back {
+    display: flex;
+  }
+}
+
+/* Floating back button (only visible in mobile landscape) */
+#float-back {
+  display: none;
+  position: fixed;
+  top: 0.5rem; left: 0.5rem;
+  background: rgba(0,0,0,0.75);
+  border: 1px solid rgba(255,60,120,0.4);
+  color: var(--accent);
+  font-size: 0.7rem; font-weight: 700;
+  padding: 0.4rem 0.7rem; border-radius: 6px;
+  cursor: pointer; z-index: 2000;
+  align-items: center; gap: 0.3rem;
+  text-decoration: none;
+  backdrop-filter: blur(4px);
+  /* in landscape it appears at what looks like top-left after rotation */
+  transform: none;
 }
 
 /* ── LOADING SCREEN ── */
@@ -68,117 +157,138 @@ html, body {
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 1rem; z-index: 50;
+  pointer-events: none;
 }
 .spinner {
-  width: 44px; height: 44px; border-radius: 50%;
+  width: 46px; height: 46px; border-radius: 50%;
   border: 3px solid #1a1a28;
   border-top-color: var(--accent);
   border-right-color: var(--purple);
   animation: spin 0.75s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.loading-txt {
-  font-size: 0.55rem; color: var(--muted);
-  letter-spacing: 0.1em; font-family: monospace;
+.load-txt {
+  font-family: monospace; font-size: 0.55rem;
+  color: var(--muted); letter-spacing: 0.1em;
   animation: blink 1s step-end infinite;
 }
+.load-sub { font-family: monospace; font-size: 0.7rem; color: #2a2a40; }
 @keyframes blink { 50% { opacity: 0; } }
-.loading-sub { font-size: 0.72rem; color: #333344; font-family: monospace; }
-
-/* ── PORTRAIT WARNING on mobile ── */
-#rotate-hint {
-  display: none;
-  position: fixed; inset: 0; background: #000;
-  flex-direction: column; align-items: center; justify-content: center;
-  gap: 1rem; z-index: 200;
-  font-family: monospace; text-align: center; padding: 2rem;
-}
-.rotate-icon { font-size: 3rem; animation: rotateAnim 1.5s ease-in-out infinite; }
-@keyframes rotateAnim {
-  0%,100%{transform:rotate(0deg)}
-  50%{transform:rotate(90deg)}
-}
-.rotate-txt { font-size: 0.65rem; color: var(--muted); letter-spacing: 0.1em; line-height: 1.8; }
-@media (max-width: 768px) and (orientation: portrait) {
-  #rotate-hint { display: flex; }
-}
 </style>
 </head>
 <body>
 
-<!-- TOP BAR -->
+<!-- ══ TOP BAR ══ -->
 <div id="topbar">
   <a id="btn-back" href="gba-arcade.html">← Libreria</a>
   <div id="game-title">Caricamento...</div>
+  <button id="btn-orient" onclick="toggleOrientation()" title="Cambia orientamento">
+    <span id="orient-icon">⟳</span>
+    <span id="orient-label">Landscape</span>
+  </button>
+  <button id="btn-fs" onclick="toggleFullscreen()" title="Schermo intero">⛶</button>
 </div>
 
-<!-- PORTRAIT ROTATE HINT (mobile only) -->
-<div id="rotate-hint">
-  <div class="rotate-icon">📱</div>
-  <div class="rotate-txt">RUOTA IL TELEFONO<br>IN ORIZZONTALE<br>PER GIOCARE</div>
-</div>
+<!-- Floating back button shown in mobile landscape -->
+<a id="float-back" href="gba-arcade.html">← Esci</a>
 
-<!-- GAME AREA -->
+<!-- ══ GAME AREA ══ -->
 <div id="game-wrap">
-  <!--
-    ╔══════════════════════════════════════════════════════╗
-    ║  #game DEVE esistere nell'HTML PRIMA di loader.js   ║
-    ║  EJS_player = '#game'  (con il #)                   ║
-    ╚══════════════════════════════════════════════════════╝
-  -->
   <div id="game">
     <div id="loading-screen">
       <div class="spinner"></div>
-      <div class="loading-txt">Caricamento emulatore...</div>
-      <div class="loading-sub">La prima volta può richiedere qualche secondo</div>
+      <div class="load-txt">Caricamento emulatore...</div>
+      <div class="load-sub">Potrebbe richiedere qualche secondo</div>
     </div>
   </div>
 </div>
 
-<!--
-  ╔══════════════════════════════════════════════════════════╗
-  ║  REGOLE EMULATORJS:                                     ║
-  ║  1) Le variabili EJS_ devono essere impostate PRIMA     ║
-  ║     del tag <script src="loader.js">                    ║
-  ║  2) loader.js deve essere un tag STATICO, NON iniettato ║
-  ║     dinamicamente via JavaScript                        ║
-  ║  3) EJS_player = '#game'  ← con il cancelletto          ║
-  ╚══════════════════════════════════════════════════════════╝
--->
+<!-- ══ CONFIG (MUST be before loader.js) ══ -->
 <script>
-  // Leggi i parametri dall'URL
-  const params   = new URLSearchParams(window.location.search);
-  const gameUrl  = params.get('url')   || '';
-  const title    = params.get('title') || 'Gioco GBA';
+  const params  = new URLSearchParams(window.location.search);
+  const gameUrl = params.get('url')   || '';
+  const title   = params.get('title') || 'Gioco GBA';
 
-  // Imposta il titolo nella barra
   document.getElementById('game-title').textContent = title;
   document.title = title + ' — GBA Arcade';
 
-  // ── CONFIGURAZIONE EMULATORJS ──────────────────────────────
-  // DEVONO essere globali e impostati PRIMA del caricamento di loader.js
-
-  EJS_player        = '#game';           // selettore CSS del div
-  EJS_core          = 'mgba';            // core GBA
-  EJS_gameUrl       = gameUrl;           // URL della ROM
-  EJS_pathtodata    = 'https://cdn.emulatorjs.org/stable/data/';
-  EJS_startOnLoaded = true;              // parte appena pronto
-  EJS_color         = '#7b2ff7';         // colore UI viola
+  /* ── EmulatorJS globals ── must be set BEFORE loader.js ── */
+  EJS_player          = '#game';
+  EJS_core            = 'mgba';
+  EJS_gameUrl         = gameUrl;
+  EJS_pathtodata      = 'https://cdn.jsdelivr.net/gh/EmulatorJS/EmulatorJS@latest/data/';
+  EJS_startOnLoaded   = true;
+  EJS_color           = '#7b2ff7';
   EJS_backgroundColor = '#000000';
-  EJS_AdUrl         = '';                // niente pubblicità
+  EJS_AdUrl           = '';
 
-  // Nascondi la schermata di caricamento quando il gioco parte
-  EJS_onGameStart = function() {
+  EJS_onGameStart = function () {
     const ls = document.getElementById('loading-screen');
     if (ls) ls.style.display = 'none';
   };
+
+  /* ── Orientation toggle ── */
+  let isLandscape = false;
+
+  function toggleOrientation() {
+    isLandscape = !isLandscape;
+    document.body.classList.toggle('landscape', isLandscape);
+    document.getElementById('orient-icon').textContent  = isLandscape ? '⟳' : '⟳';
+    document.getElementById('orient-label').textContent = isLandscape ? 'Portrait' : 'Landscape';
+
+    // On mobile, try to lock orientation via API if available
+    if (isLandscape) {
+      try { screen.orientation.lock('landscape').catch(()=>{}); } catch(e) {}
+    } else {
+      try { screen.orientation.unlock(); } catch(e) {}
+    }
+  }
+
+  /* ── Fullscreen ── */
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(()=>{});
+    } else {
+      document.exitFullscreen().catch(()=>{});
+    }
+  }
+
+  /* Update fullscreen button icon */
+  document.addEventListener('fullscreenchange', () => {
+    document.getElementById('btn-fs').textContent = document.fullscreenElement ? '✕' : '⛶';
+  });
+
+  /* Auto-detect: if user is on PC (wide screen), default portrait is fine.
+     On mobile, suggest landscape via a subtle hint after load. */
+  window.addEventListener('load', () => {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile && window.innerWidth < window.innerHeight) {
+      // Show a brief hint after 2s if still in portrait
+      setTimeout(() => {
+        if (!isLandscape) {
+          const btn = document.getElementById('btn-orient');
+          btn.style.animation = 'pulse 0.6s ease 3';
+          btn.style.borderColor = 'rgba(0,229,255,0.7)';
+          btn.style.color = 'var(--cyan)';
+          setTimeout(() => {
+            btn.style.animation = '';
+            btn.style.borderColor = '';
+            btn.style.color = '';
+          }, 2500);
+        }
+      }, 2000);
+    }
+  });
 </script>
 
-<!--
-  loader.js STATICO — questo è il modo corretto!
-  Non usare document.createElement('script') per caricarlo.
--->
-<script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
+<!-- ══ EMULATORJS loader — STATIC tag, never inject dynamically ══ -->
+<script src="https://cdn.jsdelivr.net/gh/EmulatorJS/EmulatorJS@latest/data/loader.js"></script>
 
+<style>
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(0,229,255,0); }
+  50%      { box-shadow: 0 0 0 6px rgba(0,229,255,0.35); }
+}
+</style>
 </body>
 </html>
