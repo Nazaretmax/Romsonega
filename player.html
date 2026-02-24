@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>GBA Player</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #000; --bar: #08080f; --border: #1a1a28;
+  --accent: #ff3c78; --purple: #7b2ff7; --muted: #555570; --text: #e8e8f0;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg); color: var(--text);
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── TOP BAR ── */
+#topbar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 40px; background: var(--bar);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 0.8rem; gap: 0.8rem;
+  z-index: 100;
+}
+#game-title {
+  flex: 1; font-size: 0.72rem; font-weight: 600;
+  color: var(--text); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+#btn-back {
+  background: rgba(255,60,120,0.12);
+  border: 1px solid rgba(255,60,120,0.35);
+  color: var(--accent); font-size: 0.72rem; font-weight: 600;
+  padding: 0.3rem 0.75rem; border-radius: 5px;
+  cursor: pointer; white-space: nowrap; flex-shrink: 0;
+  text-decoration: none; display: flex; align-items: center; gap: 0.3rem;
+}
+#btn-back:active { background: var(--accent); color: #000; }
+
+/* ── GAME CONTAINER ── */
+#game-wrap {
+  position: fixed;
+  top: 40px; left: 0; right: 0; bottom: 0;
+  background: #000;
+}
+
+/*
+  #game is the element EmulatorJS renders into.
+  It must fill the entire game-wrap.
+*/
+#game {
+  width: 100%; height: 100%;
+  position: relative;
+}
+
+/* ── LOADING SCREEN ── */
+#loading-screen {
+  position: absolute; inset: 0;
+  background: #000;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 1rem; z-index: 50;
+}
+.spinner {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 3px solid #1a1a28;
+  border-top-color: var(--accent);
+  border-right-color: var(--purple);
+  animation: spin 0.75s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-txt {
+  font-size: 0.55rem; color: var(--muted);
+  letter-spacing: 0.1em; font-family: monospace;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+.loading-sub { font-size: 0.72rem; color: #333344; font-family: monospace; }
+
+/* ── PORTRAIT WARNING on mobile ── */
+#rotate-hint {
+  display: none;
+  position: fixed; inset: 0; background: #000;
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 1rem; z-index: 200;
+  font-family: monospace; text-align: center; padding: 2rem;
+}
+.rotate-icon { font-size: 3rem; animation: rotateAnim 1.5s ease-in-out infinite; }
+@keyframes rotateAnim {
+  0%,100%{transform:rotate(0deg)}
+  50%{transform:rotate(90deg)}
+}
+.rotate-txt { font-size: 0.65rem; color: var(--muted); letter-spacing: 0.1em; line-height: 1.8; }
+@media (max-width: 768px) and (orientation: portrait) {
+  #rotate-hint { display: flex; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <a id="btn-back" href="gba-arcade.html">← Libreria</a>
+  <div id="game-title">Caricamento...</div>
+</div>
+
+<!-- PORTRAIT ROTATE HINT (mobile only) -->
+<div id="rotate-hint">
+  <div class="rotate-icon">📱</div>
+  <div class="rotate-txt">RUOTA IL TELEFONO<br>IN ORIZZONTALE<br>PER GIOCARE</div>
+</div>
+
+<!-- GAME AREA -->
+<div id="game-wrap">
+  <!--
+    ╔══════════════════════════════════════════════════════╗
+    ║  #game DEVE esistere nell'HTML PRIMA di loader.js   ║
+    ║  EJS_player = '#game'  (con il #)                   ║
+    ╚══════════════════════════════════════════════════════╝
+  -->
+  <div id="game">
+    <div id="loading-screen">
+      <div class="spinner"></div>
+      <div class="loading-txt">Caricamento emulatore...</div>
+      <div class="loading-sub">La prima volta può richiedere qualche secondo</div>
+    </div>
+  </div>
+</div>
+
+<!--
+  ╔══════════════════════════════════════════════════════════╗
+  ║  REGOLE EMULATORJS:                                     ║
+  ║  1) Le variabili EJS_ devono essere impostate PRIMA     ║
+  ║     del tag <script src="loader.js">                    ║
+  ║  2) loader.js deve essere un tag STATICO, NON iniettato ║
+  ║     dinamicamente via JavaScript                        ║
+  ║  3) EJS_player = '#game'  ← con il cancelletto          ║
+  ╚══════════════════════════════════════════════════════════╝
+-->
+<script>
+  // Leggi i parametri dall'URL
+  const params   = new URLSearchParams(window.location.search);
+  const gameUrl  = params.get('url')   || '';
+  const title    = params.get('title') || 'Gioco GBA';
+
+  // Imposta il titolo nella barra
+  document.getElementById('game-title').textContent = title;
+  document.title = title + ' — GBA Arcade';
+
+  // ── CONFIGURAZIONE EMULATORJS ──────────────────────────────
+  // DEVONO essere globali e impostati PRIMA del caricamento di loader.js
+
+  EJS_player        = '#game';           // selettore CSS del div
+  EJS_core          = 'mgba';            // core GBA
+  EJS_gameUrl       = gameUrl;           // URL della ROM
+  EJS_pathtodata    = 'https://cdn.emulatorjs.org/stable/data/';
+  EJS_startOnLoaded = true;              // parte appena pronto
+  EJS_color         = '#7b2ff7';         // colore UI viola
+  EJS_backgroundColor = '#000000';
+  EJS_AdUrl         = '';                // niente pubblicità
+
+  // Nascondi la schermata di caricamento quando il gioco parte
+  EJS_onGameStart = function() {
+    const ls = document.getElementById('loading-screen');
+    if (ls) ls.style.display = 'none';
+  };
+</script>
+
+<!--
+  loader.js STATICO — questo è il modo corretto!
+  Non usare document.createElement('script') per caricarlo.
+-->
+<script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
+
+</body>
+</html>
