@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>GBA Arcade Italia</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0d0d14; --bg2: #13131e; --card: #1a1a28; --border: #2a2a40;
+  --accent: #ff3c78; --accent2: #7b2ff7; --accent3: #00e5ff; --yellow: #ffe600;
+  --text: #e8e8f0; --muted: #6b6b8a; --radius: 10px;
+}
+html, body { height: 100%; overflow-x: hidden; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'Inter', sans-serif; font-size: 14px;
+  line-height: 1.6;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+body::before {
+  content: ''; position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.05) 3px,rgba(0,0,0,0.05) 4px);
+  pointer-events: none; z-index: 9999;
+}
+
+/* ── HEADER ── */
+header { text-align: center; padding: 2.5rem 1rem 1.5rem; }
+header::after {
+  content: ''; display: block; width: 80%; max-width: 600px; height: 2px;
+  margin: 1.5rem auto 0;
+  background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), var(--accent3), transparent);
+}
+.logo {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.9rem, 4vw, 1.8rem); letter-spacing: 0.02em; line-height: 1.5;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 50%, var(--accent3) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  animation: glow 3s ease-in-out infinite;
+}
+@keyframes glow {
+  0%,100%{filter:drop-shadow(0 0 15px rgba(255,60,120,0.3))}
+  50%{filter:drop-shadow(0 0 30px rgba(123,47,247,0.5))}
+}
+.tagline { font-family:'Press Start 2P',monospace; font-size:0.4rem; letter-spacing:0.15em; color:var(--muted); margin-top:0.6rem; }
+
+/* ── SEARCH ── */
+.search-wrap { max-width:600px; margin:1.5rem auto 0.5rem; padding:0 1rem; position:relative; }
+.search-wrap input {
+  width:100%; background:var(--card); border:1px solid var(--border); border-radius:50px;
+  color:var(--text); font-family:'Inter',sans-serif; font-size:1rem;
+  padding:0.75rem 1.2rem 0.75rem 3rem; outline:none;
+  transition:border-color 0.2s,box-shadow 0.2s;
+  -webkit-appearance: none;
+}
+.search-wrap input:focus { border-color:var(--accent2); box-shadow:0 0 0 3px rgba(123,47,247,0.15); }
+.search-wrap input::placeholder { color:var(--muted); }
+.search-icon { position:absolute; left:1.9rem; top:50%; transform:translateY(-50%); color:var(--muted); pointer-events:none; }
+.stats { text-align:center; font-size:0.65rem; color:var(--muted); margin:0.6rem 0 1rem; font-family:'Press Start 2P',monospace; }
+
+/* ── GRID ── */
+.grid-wrap { max-width:1300px; margin:0 auto; padding:0 0.8rem 5rem; }
+.grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap:0.8rem;
+}
+@media(max-width:480px){
+  .grid{ grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:0.6rem; }
+}
+
+/* ── CARD ── */
+.game-card {
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  overflow:hidden; cursor:pointer;
+  transition:transform 0.18s,border-color 0.18s,box-shadow 0.18s;
+  position:relative; user-select:none;
+}
+.game-card:active { transform:scale(0.96); }
+@media(hover:hover){
+  .game-card:hover { transform:translateY(-4px) scale(1.02); border-color:var(--accent2); box-shadow:0 8px 30px rgba(123,47,247,0.25); }
+}
+.card-thumb {
+  width:100%; aspect-ratio:3/2;
+  background:linear-gradient(135deg,#1e1e30 0%,#0d0d1a 100%);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  font-family:'Press Start 2P',monospace; font-size:0.45rem; color:var(--muted);
+  text-align:center; padding:0.5rem; position:relative; overflow:hidden;
+}
+.card-thumb::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(circle at 30% 30%,rgba(123,47,247,0.12),transparent 70%),
+             radial-gradient(circle at 80% 70%,rgba(255,60,120,0.08),transparent 60%);
+}
+.card-thumb .gba-icon { font-size:2rem; margin-bottom:0.3rem; filter:drop-shadow(0 0 10px rgba(123,47,247,0.5)); position:relative; }
+.card-thumb .game-abbr { position:relative; font-size:0.4rem; color:rgba(255,255,255,0.4); }
+.card-body { padding:0.6rem 0.7rem 0.7rem; }
+.card-title {
+  font-size:0.72rem; font-weight:600; line-height:1.4; color:var(--text);
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2em;
+}
+.card-meta { display:flex; gap:0.35rem; margin-top:0.4rem; align-items:center; }
+.badge {
+  font-family:'Press Start 2P',monospace; font-size:0.35rem; padding:2px 6px;
+  border-radius:3px; text-transform:uppercase;
+}
+.badge-gba { background:rgba(0,229,255,0.1);color:var(--accent3);border:1px solid rgba(0,229,255,0.25); }
+.badge-ita { background:rgba(255,230,0,0.1);color:var(--yellow);border:1px solid rgba(255,230,0,0.25); }
+.card-size { font-size:0.65rem;color:var(--muted);margin-left:auto; }
+
+/* ── LOADER ── */
+#loader { display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 1rem;gap:1.2rem; }
+.spinner { width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);border-right-color:var(--accent2);border-radius:50%;animation:spin 0.8s linear infinite; }
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-text { font-family:'Press Start 2P',monospace;font-size:0.5rem;color:var(--muted);letter-spacing:0.1em;animation:blink 1s step-end infinite; }
+@keyframes blink{50%{opacity:0}}
+#empty { display:none;text-align:center;padding:3rem 1rem;font-family:'Press Start 2P',monospace;font-size:0.5rem;color:var(--muted); }
+
+/* ── EMULATOR FULLSCREEN MODAL ── */
+#emu-modal {
+  display:none;
+  position:fixed; inset:0;
+  background:#000;
+  z-index:10000;
+  flex-direction:column;
+}
+#emu-modal.open { display:flex; }
+
+/* Force landscape on mobile via transform trick */
+@media (max-width: 768px) and (orientation: portrait) {
+  #emu-modal {
+    width: 100vh;
+    height: 100vw;
+    transform-origin: top left;
+    transform: rotate(90deg) translateY(-100%);
+    position: fixed;
+    top: 0; left: 0;
+  }
+}
+
+.emu-topbar {
+  background: #0a0a12;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0.4rem 0.8rem;
+  flex-shrink:0;
+  border-bottom:1px solid var(--border);
+  min-height:36px;
+}
+.emu-title {
+  font-family:'Press Start 2P',monospace; font-size:0.45rem;
+  color:var(--text); letter-spacing:0.05em;
+  flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  margin-right:0.5rem;
+}
+.close-btn {
+  background:rgba(255,60,120,0.15); border:1px solid rgba(255,60,120,0.4);
+  color:var(--accent); font-family:'Press Start 2P',monospace; font-size:0.4rem;
+  letter-spacing:0.05em; padding:0.4rem 0.8rem; border-radius:4px;
+  cursor:pointer; transition:all 0.18s; white-space:nowrap; flex-shrink:0;
+}
+.close-btn:active { background:var(--accent); color:white; }
+
+#emu-container {
+  flex:1;
+  background:#000;
+  position:relative;
+  overflow:hidden;
+  min-height:0;
+}
+/* Make EmulatorJS fill container */
+#emu-container > div, #emu-container canvas, #emu-container video {
+  width:100% !important;
+  height:100% !important;
+}
+
+.emu-loading-screen {
+  position:absolute; inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:#000; gap:1rem; z-index:10;
+}
+.emu-loading-screen p { font-family:'Press Start 2P',monospace;font-size:0.48rem;color:var(--muted);letter-spacing:0.1em;text-align:center;line-height:2; }
+.emu-loading-screen small { font-family:'Inter',sans-serif;font-size:0.7rem;color:rgba(255,255,255,0.25); }
+.error-screen {
+  position:absolute; inset:0;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  background:#0d0005; gap:1rem; z-index:11; padding:1.5rem; text-align:center;
+}
+.error-screen h3 { font-family:'Press Start 2P',monospace;font-size:0.6rem;color:var(--accent);letter-spacing:0.08em; }
+.error-screen p { font-size:0.8rem;color:var(--muted);line-height:1.8;max-width:400px; }
+.error-screen button {
+  background:var(--accent2);border:none;color:white;
+  font-family:'Press Start 2P',monospace;font-size:0.45rem;letter-spacing:0.05em;
+  padding:0.7rem 1.2rem;border-radius:6px;cursor:pointer;margin-top:0.5rem;
+}
+
+/* ── CDN STATUS ── */
+.cdn-badge {
+  font-family:'Press Start 2P',monospace;font-size:0.35rem;letter-spacing:0.05em;
+  padding:2px 6px;border-radius:3px;margin-left:0.5rem;
+}
+
+/* ── SCROLL TOP ── */
+#back-top {
+  position:fixed;bottom:1.2rem;right:1.2rem;
+  background:var(--accent2);border:none;border-radius:50%;
+  width:42px;height:42px;font-size:1.1rem;cursor:pointer;
+  display:none;align-items:center;justify-content:center;
+  box-shadow:0 4px 15px rgba(123,47,247,0.5);color:white;z-index:500;
+}
+#back-top.show{display:flex}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">GBA ARCADE<br>ITALIA</div>
+  <div class="tagline">▶ gameboy advance — giochi in italiano ◀</div>
+</header>
+
+<div class="search-wrap">
+  <span class="search-icon">🔍</span>
+  <input type="text" id="searchInput" placeholder="Cerca... es: Pokémon, Mario, Dragon Ball" autocomplete="off" spellcheck="false">
+</div>
+<div class="stats" id="stats"></div>
+
+<div class="grid-wrap">
+  <div id="loader"><div class="spinner"></div><div class="loader-text">Caricamento giochi...</div></div>
+  <div id="empty">❌ Nessun gioco trovato</div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- ── EMULATOR MODAL ── -->
+<div id="emu-modal">
+  <div class="emu-topbar">
+    <div class="emu-title" id="emu-title">—</div>
+    <button class="close-btn" onclick="closeEmu()">✕ ESCI</button>
+  </div>
+
+  <div id="emu-container">
+    <div class="emu-loading-screen" id="emu-loading">
+      <div class="spinner"></div>
+      <p>Caricamento emulatore...<br><span id="cdn-status">Connessione CDN...</span></p>
+      <small>La prima volta può richiedere 10–30 secondi</small>
+    </div>
+    <div class="error-screen" id="emu-error">
+      <h3>⚠ NETWORK ERROR</h3>
+      <p id="error-msg">Impossibile caricare l'emulatore.<br>Prova con una connessione diversa o riprova.</p>
+      <button onclick="retryLoad()">↺ RIPROVA</button>
+      <button onclick="closeEmu()" style="background:transparent;border:1px solid var(--muted);color:var(--muted);margin-top:0.3rem">ANNULLA</button>
+    </div>
+  </div>
+</div>
+
+<button id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+'use strict';
+
+const ARCHIVE_ID = 'gba-italian-romset_202201';
+const BASE_DL    = `https://archive.org/download/${ARCHIVE_ID}/`;
+const META_API   = `https://archive.org/metadata/${ARCHIVE_ID}`;
+
+// Multiple CDN fallbacks for EmulatorJS
+const CDN_LIST = [
+  'https://cdn.emulatorjs.org/stable/data/',
+  'https://cdn.emulatorjs.org/latest/data/',
+  'https://cdn.jsdelivr.net/gh/EmulatorJS/EmulatorJS@latest/data/',
+];
+
+let allGames = [];
+let currentGame = null;
+let cdnIndex = 0;
+let emuTimeout = null;
+
+// ── Load game list ────────────────────────────────────────────────────────────
+async function loadGames() {
+  try {
+    const r = await fetch(META_API);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+
+    allGames = (d.files || [])
+      .filter(f => /\.(zip|gba)$/i.test(f.name) && !/(_files|_meta|_reviews)/.test(f.name))
+      .map(f => ({
+        name: f.name,
+        title: cleanTitle(f.name),
+        url: BASE_DL + encodeURIComponent(f.name),
+        size: f.size ? (f.size / 1024 / 1024).toFixed(1) : null
+      }))
+      .sort((a, b) => a.title.localeCompare(b.title, 'it'));
+
+    document.getElementById('loader').style.display = 'none';
+    updateStats(allGames.length, allGames.length);
+    renderGrid(allGames);
+
+  } catch(e) {
+    document.getElementById('loader').innerHTML = `
+      <div style="font-family:'Press Start 2P',monospace;font-size:0.52rem;color:#ff4444;text-align:center;line-height:2.2;padding:1rem">
+        ⚠ ERRORE<br>
+        <span style="font-size:0.4rem;opacity:0.6">Connessione a Archive.org fallita.<br>Ricarica la pagina.</span><br>
+        <button onclick="location.reload()" style="margin-top:1rem;background:var(--accent2);border:none;color:white;
+          font-family:'Press Start 2P',monospace;font-size:0.4rem;padding:0.6rem 1rem;border-radius:6px;cursor:pointer;">
+          ↺ RICARICA
+        </button>
+      </div>`;
+  }
+}
+
+function cleanTitle(fn) {
+  return fn
+    .replace(/\.(zip|gba)$/i, '')
+    .replace(/_/g, ' ')
+    .replace(/\s*\([^)]*\)/g, '')
+    .replace(/\s*\[[^\]]*\]/g, '')
+    .trim() || fn;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderGrid(games) {
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+  if (!games.length) { grid.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+
+  const frag = document.createDocumentFragment();
+  games.forEach(g => {
+    const card = document.createElement('div');
+    card.className = 'game-card';
+    card.innerHTML = `
+      <div class="card-thumb">
+        <span class="gba-icon">🎮</span>
+        <span class="game-abbr">${g.title.slice(0,18)}</span>
+      </div>
+      <div class="card-body">
+        <div class="card-title">${g.title}</div>
+        <div class="card-meta">
+          <span class="badge badge-gba">GBA</span>
+          <span class="badge badge-ita">ITA</span>
+          ${g.size ? `<span class="card-size">${g.size}MB</span>` : ''}
+        </div>
+      </div>`;
+    card.addEventListener('click', () => launchGame(g));
+    frag.appendChild(card);
+  });
+  grid.innerHTML = '';
+  grid.appendChild(frag);
+}
+
+function updateStats(shown, total) {
+  document.getElementById('stats').textContent =
+    shown === total ? `${total} giochi disponibili` : `${shown} / ${total} giochi`;
+}
+
+// ── Search ────────────────────────────────────────────────────────────────────
+document.getElementById('searchInput').addEventListener('input', function() {
+  const q = this.value.trim().toLowerCase();
+  const filtered = q ? allGames.filter(g => g.title.toLowerCase().includes(q) || g.name.toLowerCase().includes(q)) : allGames;
+  renderGrid(filtered);
+  updateStats(filtered.length, allGames.length);
+});
+
+// ── Launch ────────────────────────────────────────────────────────────────────
+function launchGame(game) {
+  currentGame = game;
+  cdnIndex = 0;
+  document.getElementById('emu-title').textContent = game.title;
+  document.getElementById('emu-modal').classList.add('open');
+  document.getElementById('emu-loading').style.display = 'flex';
+  document.getElementById('emu-error').style.display = 'none';
+  document.body.style.overflow = 'hidden';
+  startEmulator(game, CDN_LIST[0]);
+}
+
+function startEmulator(game, cdnPath) {
+  document.getElementById('cdn-status').textContent = `CDN ${cdnIndex+1}/${CDN_LIST.length}...`;
+
+  // Clean up
+  clearTimeout(emuTimeout);
+  document.querySelectorAll('script[data-emu]').forEach(s => s.remove());
+  ['EJS_player','EJS_gameUrl','EJS_core','EJS_pathtodata','EJS_color',
+   'EJS_startOnLoaded','EJS_language','EJS_gameID','EJS_onGameStart',
+   'EJS_onLoadError','EJS_emulator','EJS_AdUrl'].forEach(k => delete window[k]);
+
+  // Remove old emulator divs (not loading/error screens)
+  const container = document.getElementById('emu-container');
+  Array.from(container.children).forEach(c => {
+    if (c.id !== 'emu-loading' && c.id !== 'emu-error') c.remove();
+  });
+
+  // Set EmulatorJS config
+  window.EJS_player       = '#emu-container';
+  window.EJS_gameUrl      = game.url;
+  window.EJS_core         = 'mgba';
+  window.EJS_pathtodata   = cdnPath;
+  window.EJS_color        = '#7b2ff7';
+  window.EJS_startOnLoaded = true;
+  window.EJS_language     = 'it';
+  window.EJS_gameID       = game.name.replace(/[^a-zA-Z0-9]/g,'_');
+  window.EJS_AdUrl        = '';  // disable ads
+  window.EJS_defaultControls = 1;
+
+  // Success callback
+  window.EJS_onGameStart = function() {
+    clearTimeout(emuTimeout);
+    document.getElementById('emu-loading').style.display = 'none';
+  };
+
+  // Error callback
+  window.EJS_onLoadError = function(e) {
+    clearTimeout(emuTimeout);
+    tryNextCdn(game);
+  };
+
+  // Timeout fallback (15s)
+  emuTimeout = setTimeout(() => tryNextCdn(game), 15000);
+
+  // Load script
+  const script = document.createElement('script');
+  script.setAttribute('data-emu', '1');
+  script.onerror = () => { clearTimeout(emuTimeout); tryNextCdn(game); };
+  script.src = cdnPath + 'loader.js?t=' + Date.now();
+  document.body.appendChild(script);
+}
+
+function tryNextCdn(game) {
+  cdnIndex++;
+  if (cdnIndex < CDN_LIST.length) {
+    document.getElementById('cdn-status').textContent = `CDN ${cdnIndex+1}/${CDN_LIST.length}...`;
+    startEmulator(game, CDN_LIST[cdnIndex]);
+  } else {
+    // All CDNs failed → show error
+    document.getElementById('emu-loading').style.display = 'none';
+    document.getElementById('emu-error').style.display = 'flex';
+    document.getElementById('error-msg').innerHTML =
+      `Tutti i CDN hanno fallito (${CDN_LIST.length} tentativi).<br>
+       Assicurati di avere connessione internet e non stai usando una VPN/proxy che blocca i CDN.<br><br>
+       <small style="font-size:0.75rem;opacity:0.6">Gioco: ${game.title}</small>`;
+  }
+}
+
+function retryLoad() {
+  if (!currentGame) return;
+  cdnIndex = 0;
+  document.getElementById('emu-loading').style.display = 'flex';
+  document.getElementById('emu-error').style.display = 'none';
+  startEmulator(currentGame, CDN_LIST[0]);
+}
+
+// ── Close ─────────────────────────────────────────────────────────────────────
+function closeEmu() {
+  clearTimeout(emuTimeout);
+  document.getElementById('emu-modal').classList.remove('open');
+  document.body.style.overflow = '';
+
+  // Full cleanup
+  document.querySelectorAll('script[data-emu]').forEach(s => s.remove());
+  ['EJS_player','EJS_gameUrl','EJS_core','EJS_pathtodata','EJS_color',
+   'EJS_startOnLoaded','EJS_language','EJS_gameID','EJS_onGameStart',
+   'EJS_onLoadError','EJS_emulator','EJS_AdUrl'].forEach(k => delete window[k]);
+
+  // Rebuild container
+  const old = document.getElementById('emu-container');
+  const fresh = old.cloneNode(false);
+  fresh.id = 'emu-container';
+  fresh.innerHTML = `
+    <div class="emu-loading-screen" id="emu-loading">
+      <div class="spinner"></div>
+      <p>Caricamento emulatore...<br><span id="cdn-status">Connessione CDN...</span></p>
+      <small>La prima volta può richiedere 10–30 secondi</small>
+    </div>
+    <div class="error-screen" id="emu-error">
+      <h3>⚠ NETWORK ERROR</h3>
+      <p id="error-msg">Impossibile caricare l'emulatore.</p>
+      <button onclick="retryLoad()">↺ RIPROVA</button>
+      <button onclick="closeEmu()" style="background:transparent;border:1px solid var(--muted);color:var(--muted);margin-top:0.3rem">ANNULLA</button>
+    </div>`;
+  old.replaceWith(fresh);
+  currentGame = null;
+}
+
+// ── Keyboard ──────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEmu(); });
+
+// ── Scroll top ────────────────────────────────────────────────────────────────
+window.addEventListener('scroll', () => {
+  document.getElementById('back-top').classList.toggle('show', window.scrollY > 400);
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadGames();
+</script>
+</body>
+</html>
