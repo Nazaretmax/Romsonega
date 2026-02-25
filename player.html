@@ -6,6 +6,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>GBA Player</title>
+
+<!-- Puter.js: drop-in fetch() replacement that bypasses CORS, no config needed -->
+<script src="https://js.puter.com/v2/"></script>
+
 <style>
 *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 :root {
@@ -34,14 +38,13 @@ html,body { width:100%; height:100%; background:#000; overflow:hidden; font-fami
 #game { width:100%; height:100%; }
 
 /* SPLASH */
-#splash { position:absolute; inset:0; background:#000; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.8rem; }
-.spinner { width:46px; height:46px; border-radius:50%; border:3px solid #1a1a28; border-top-color:var(--accent); border-right-color:var(--purple); animation:spin 0.75s linear infinite; }
+#splash { position:absolute; inset:0; background:#000; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.9rem; padding:1rem; }
+.spinner { width:46px; height:46px; border-radius:50%; border:3px solid #1a1a28; border-top-color:var(--accent); border-right-color:var(--purple); animation:spin 0.75s linear infinite; flex-shrink:0; }
 @keyframes spin { to{transform:rotate(360deg)} }
-#splash-status { font-family:monospace; font-size:0.58rem; color:var(--muted); letter-spacing:0.1em; text-align:center; padding:0 1rem; }
-#splash-bar-wrap { width:240px; height:6px; background:#1a1a28; border-radius:3px; overflow:hidden; display:none; }
-#splash-bar { height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--purple)); border-radius:3px; transition:width 0.3s; }
-#splash-pct { font-family:monospace; font-size:0.55rem; color:var(--purple); }
-@keyframes blink { 50%{opacity:0} }
+#splash-status { font-family:monospace; font-size:0.58rem; color:var(--muted); letter-spacing:0.1em; text-align:center; }
+#splash-bar-wrap { width:260px; height:7px; background:#111122; border-radius:4px; overflow:hidden; display:none; }
+#splash-bar { height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--purple)); transition:width 0.25s; }
+#splash-pct { font-family:monospace; font-size:0.6rem; color:var(--purple); min-height:1em; }
 
 /* LANDSCAPE mobile */
 body.landscape #topbar     { display:none; }
@@ -72,7 +75,7 @@ body.landscape #float-back { display:flex; }
 
 <a id="float-back" href="gba-arcade.html">← Esci</a>
 
-<!-- LOG PANEL — in DOM before any script -->
+<!-- LOG PANEL — must be in DOM before any script that uses it -->
 <div id="log-panel">
   <div id="log-header">
     <span>🐛 DEBUG LOG</span>
@@ -80,7 +83,7 @@ body.landscape #float-back { display:flex; }
       <button class="log-hbtn" onclick="document.getElementById('log-list').innerHTML=''"
         style="border-color:rgba(255,68,68,0.4);color:#ff4444;">CLEAR</button>
       <button class="log-hbtn" onclick="toggleLog()"
-        style="border-color:rgba(255,179,0,0.4);color:#ffb300;">✕ CHIUDI</button>
+        style="border-color:rgba(255,179,0,0.4);color:#ffb300;">✕</button>
     </div>
   </div>
   <div id="log-list"></div>
@@ -92,7 +95,7 @@ body.landscape #float-back { display:flex; }
     <div id="game"></div>
     <div id="splash">
       <div class="spinner"></div>
-      <div id="splash-status">Scaricamento ROM...</div>
+      <div id="splash-status">Preparazione...</div>
       <div id="splash-bar-wrap"><div id="splash-bar"></div></div>
       <div id="splash-pct"></div>
     </div>
@@ -106,9 +109,9 @@ var gameUrl = params.get('url')   || '';
 var title   = params.get('title') || 'Gioco GBA';
 
 document.getElementById('game-title').textContent = title;
-document.title = title + ' — GBA Arcade';
+document.title = title;
 
-/* ── Wrapper sizing ── */
+/* ── Wrapper sizing (explicit px required by EmulatorJS) ── */
 function sizeWrapper() {
   var aW = window.innerWidth;
   var aH = window.innerHeight - 44;
@@ -126,12 +129,11 @@ window.addEventListener('resize', sizeWrapper);
 /* ── LOG ── */
 var logList = document.getElementById('log-list');
 var logOpen = false;
-
 function log(msg, type) {
-  var colors = {ok:'#00ffa0',err:'#ff4444',warn:'#ffb300',info:'#00c8ff'};
+  var colors = {ok:'#00ffa0', err:'#ff4444', warn:'#ffb300', info:'#00c8ff'};
   var t = new Date().toLocaleTimeString('it',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   var d = document.createElement('div');
-  d.className   = 'le';
+  d.className = 'le';
   d.style.color = colors[type]||'#aaa';
   d.innerHTML   = '<span class="ts">'+t+'</span>'+msg;
   logList.appendChild(d);
@@ -142,12 +144,24 @@ function toggleLog() {
   document.getElementById('log-panel').style.display = logOpen?'flex':'none';
   document.getElementById('btn-log').textContent = logOpen?'✕ LOG':'🐛 LOG';
 }
-
-window.addEventListener('error',function(e){ log('❌ '+e.message+' ['+((e.filename||'').split('/').pop())+':'+e.lineno+']','err'); });
+window.addEventListener('error',function(e){ log('❌ '+e.message+' ('+((e.filename||'').split('/').pop())+':'+e.lineno+')','err'); });
 window.addEventListener('unhandledrejection',function(e){ log('❌ Promise: '+(e.reason&&(e.reason.message||e.reason)),'err'); });
-
 var _ce=console.error; console.error=function(){ log('❌ '+Array.from(arguments).join(' '),'err'); _ce.apply(console,arguments); };
 var _cw=console.warn;  console.warn =function(){ log('⚠ ' +Array.from(arguments).join(' '),'warn');_cw.apply(console,arguments); };
+
+/* ── UI helpers ── */
+function setSplash(msg) { document.getElementById('splash-status').textContent = msg; }
+function setBar(pct)    {
+  document.getElementById('splash-bar-wrap').style.display = 'block';
+  document.getElementById('splash-bar').style.width = pct+'%';
+  document.getElementById('splash-pct').textContent  = pct+'%';
+}
+function splashError(msg) {
+  document.querySelector('.spinner').style.display = 'none';
+  setSplash(msg);
+  document.getElementById('splash-pct').style.color = '#ff4444';
+  document.getElementById('splash-pct').textContent = '↑ attiva il LOG per dettagli';
+}
 
 /* ── Orientation ── */
 var landscape = false;
@@ -156,8 +170,7 @@ function toggleOrientation() {
   document.body.classList.toggle('landscape', landscape);
   document.getElementById('btn-orient').textContent = landscape?'⟳ Portrait':'⟳ Landscape';
   log('🔄 '+(landscape?'Landscape':'Portrait'),'info');
-  var area = document.getElementById('game-area');
-  var wr   = document.getElementById('ejs-wrapper');
+  var area=document.getElementById('game-area'), wr=document.getElementById('ejs-wrapper');
   if (landscape && window.innerWidth < 769) {
     var lw=window.innerHeight, lh=window.innerWidth;
     area.style.cssText='position:fixed;top:0;left:0;background:#000;display:flex;align-items:center;justify-content:center;';
@@ -184,157 +197,148 @@ document.addEventListener('fullscreenchange',function(){
   sizeWrapper();
 });
 
-/* ═══════════════════════════════════════════════════════
-   MAIN: Pre-fetch ROM as blob, then launch EmulatorJS
-   
-   WHY: Archive.org blocks XHR cross-origin (CORS),
-   but allows fetch(). EmulatorJS uses XHR internally.
-   Solution: download with fetch() → create blob: URL
-   → give blob URL to EJS (XHR on blob: always works).
-═══════════════════════════════════════════════════════ */
+/* ── Start EmulatorJS with a blob URL ── */
+function startEmulator(blobUrl) {
+  log('▶ Avvio EmulatorJS...','info');
+  setSplash('Avvio emulatore...');
+
+  window.EJS_player          = '#game';
+  window.EJS_core            = 'mgba';
+  window.EJS_gameUrl         = blobUrl;
+  window.EJS_pathtodata      = 'https://cdn.emulatorjs.org/stable/data/';
+  window.EJS_startOnLoaded   = true;
+  window.EJS_color           = '#7b2ff7';
+  window.EJS_backgroundColor = '#000000';
+  window.EJS_language        = 'en';
+  window.EJS_AdUrl           = '';
+
+  window.EJS_onGameStart = function() {
+    log('🎮 GIOCO AVVIATO!','ok');
+    document.getElementById('splash').style.display = 'none';
+  };
+  window.EJS_onLoadError = function(e) {
+    log('❌ EJS error: '+(e||'?'),'err');
+    splashError('❌ Errore emulatore');
+  };
+
+  log('📦 CDN: '+window.EJS_pathtodata,'info');
+
+  var s = document.createElement('script');
+  s.src = window.EJS_pathtodata + 'loader.js';
+  s.onload  = function(){ log('✅ loader.js OK','ok'); };
+  s.onerror = function(){ log('❌ loader.js FAIL — CDN irraggiungibile','err'); splashError('❌ CDN non raggiungibile'); };
+  document.head.appendChild(s);
+}
+
+/* ══════════════════════════════════════════════════════
+   DOWNLOAD ROM — 3-step cascade:
+   1. puter.net.fetch()  — CORS-free, no config needed
+   2. fetch() diretto    — funziona se archive.org ha CORS
+   3. Proxy list         — fallback
+══════════════════════════════════════════════════════ */
 log('━━━ START ━━━','info');
 log('🎮 '+title,'info');
 log('🔗 '+decodeURIComponent(gameUrl.split('/').pop()),'info');
 
-function setSplashStatus(msg) {
-  document.getElementById('splash-status').textContent = msg;
+function blobFromResponse(res, label) {
+  log('✅ '+label+' OK — lettura bytes...','ok');
+  var total = 0;
+  try { total = parseInt(res.headers.get('content-length')||'0'); } catch(e){}
+  if (total) log('📦 '+(total/1048576).toFixed(1)+' MB','info');
+
+  var reader   = res.body.getReader();
+  var chunks   = [];
+  var received = 0;
+
+  function pump() {
+    return reader.read().then(function(r) {
+      if (r.done) {
+        log('✅ Download completo: '+(received/1048576).toFixed(1)+' MB','ok');
+        var blobUrl = URL.createObjectURL(new Blob(chunks));
+        log('🔗 Blob URL pronto','ok');
+        startEmulator(blobUrl);
+        return;
+      }
+      chunks.push(r.value);
+      received += r.value.length;
+      if (total) { var p=Math.round(received/total*100); setBar(p); setSplash('Download: '+p+'%'); }
+      else        { setSplash('Download: '+(received/1048576).toFixed(1)+' MB...'); }
+      return pump();
+    });
+  }
+  return pump();
 }
 
-function startEmulatorWithBlob(blobUrl) {
-  log('▶ Avvio EmulatorJS con blob URL','info');
-  setSplashStatus('Avvio emulatore...');
-
-  /* EJS globals — var required, no strict mode, set before loader.js */
-  var EJS_player          = '#game';
-  var EJS_core            = 'mgba';
-  var EJS_gameUrl         = blobUrl;   /* ← blob URL, not archive.org */
-  var EJS_pathtodata      = 'https://cdn.emulatorjs.org/stable/data/';
-  var EJS_startOnLoaded   = true;
-  var EJS_color           = '#7b2ff7';
-  var EJS_backgroundColor = '#000000';
-  var EJS_language        = 'en';      /* ← 'it' gives 404, use 'en' */
-  var EJS_AdUrl           = '';
-
-  var EJS_onGameStart = function() {
-    log('🎮 GIOCO AVVIATO!','ok');
-    document.getElementById('splash').style.display = 'none';
-  };
-  var EJS_onLoadError = function(e) {
-    log('❌ EJS_onLoadError: '+(e||'?'),'err');
-  };
-
-  /* Copy to window so loader.js finds them */
-  window.EJS_player          = EJS_player;
-  window.EJS_core            = EJS_core;
-  window.EJS_gameUrl         = EJS_gameUrl;
-  window.EJS_pathtodata      = EJS_pathtodata;
-  window.EJS_startOnLoaded   = EJS_startOnLoaded;
-  window.EJS_color           = EJS_color;
-  window.EJS_backgroundColor = EJS_backgroundColor;
-  window.EJS_language        = EJS_language;
-  window.EJS_AdUrl           = EJS_AdUrl;
-  window.EJS_onGameStart     = EJS_onGameStart;
-  window.EJS_onLoadError     = EJS_onLoadError;
-
-  log('📦 CDN: '+EJS_pathtodata,'info');
-  log('⏳ Caricamento loader.js...','info');
-
-  var s = document.createElement('script');
-  s.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
-  s.onload  = function(){ log('✅ loader.js OK','ok'); };
-  s.onerror = function(){ log('❌ loader.js FAIL — CDN non raggiungibile','err'); setSplashStatus('❌ CDN non raggiungibile'); };
-  document.head.appendChild(s);
-}
-
-/* CORS proxy list — tried in order until one works */
+/* ── Fallback proxy list (only if puter + direct fail) ── */
 var PROXIES = [
-  '',                                          /* 1. diretto (funziona se CORS ok) */
-  'https://corsproxy.io/?',                    /* 2. corsproxy.io */
-  'https://api.allorigins.win/raw?url=',       /* 3. allorigins */
-  'https://proxy.cors.sh/',                    /* 4. cors.sh */
+  { label:'corsproxy.io',   build: function(u){ return 'https://corsproxy.io/?'+encodeURIComponent(u); } },
+  { label:'allorigins',     build: function(u){ return 'https://api.allorigins.win/raw?url='+encodeURIComponent(u); } },
+  { label:'codetabs',       build: function(u){ return 'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u); } },
+  { label:'thingproxy',     build: function(u){ return 'https://thingproxy.freeboard.io/fetch/'+u; } },
 ];
-var proxyIndex = 0;
+var proxyIdx = 0;
 
-function fetchWithProxy(romUrl, proxyPrefix) {
-  var fetchUrl = proxyPrefix
-    ? proxyPrefix + encodeURIComponent(romUrl)
-    : romUrl;
+function tryProxy(romUrl) {
+  if (proxyIdx >= PROXIES.length) {
+    log('❌ Tutti i metodi falliti','err');
+    splashError('❌ Impossibile scaricare la ROM (CORS)');
+    return;
+  }
+  var p = PROXIES[proxyIdx++];
+  var url = p.build(romUrl);
+  log('📡 Proxy '+proxyIdx+'/'+PROXIES.length+': '+p.label,'info');
+  setSplash('Download via '+p.label+'...');
 
-  var label = proxyPrefix
-    ? proxyPrefix.split('/')[2]   /* hostname only */
-    : 'diretto';
-
-  log('📡 Tentativo '+(proxyIndex+1)+'/'+PROXIES.length+' via '+label, 'info');
-  setSplashStatus('Download ROM... ('+label+')');
-
-  return fetch(fetchUrl, { mode: 'cors' })
+  fetch(url)
     .then(function(res) {
       if (!res.ok) throw new Error('HTTP '+res.status);
-      return res;
+      return blobFromResponse(res, p.label);
+    })
+    .catch(function(e) {
+      log('⚠ '+p.label+' fallito: '+e.message,'warn');
+      tryProxy(romUrl);
     });
 }
 
-function downloadROM(url) {
-  log('📥 Download ROM...','info');
-  document.getElementById('splash-bar-wrap').style.display = 'block';
+function downloadROM(romUrl) {
+  log('📥 Metodo 1: puter.net.fetch (CORS-free)...','info');
+  setSplash('Download ROM...');
+  setBar(0);
 
-  function tryNext() {
-    if (proxyIndex >= PROXIES.length) {
-      log('❌ Tutti i proxy falliti.','err');
-      setSplashStatus('❌ Impossibile scaricare la ROM');
-      document.getElementById('splash-pct').style.color='#ff4444';
-      document.getElementById('splash-pct').textContent='Errore CORS';
-      return;
-    }
-
-    fetchWithProxy(url, PROXIES[proxyIndex])
+  /* Step 1: puter.net.fetch — bypassa CORS lato server Puter */
+  if (typeof puter !== 'undefined' && puter.net && puter.net.fetch) {
+    puter.net.fetch(romUrl)
       .then(function(res) {
-        log('✅ Risposta OK via proxy '+proxyIndex+' — lettura bytes...','ok');
-        var total = parseInt(res.headers.get('content-length')||'0');
-        if (total) log('📦 '+(total/1024/1024).toFixed(1)+' MB','info');
-
-        var reader   = res.body.getReader();
-        var chunks   = [];
-        var received = 0;
-
-        function read() {
-          return reader.read().then(function(r) {
-            if (r.done) {
-              log('✅ Download completo: '+(received/1024/1024).toFixed(1)+' MB','ok');
-              var blobUrl = URL.createObjectURL(new Blob(chunks));
-              log('🔗 Blob URL pronto','ok');
-              startEmulatorWithBlob(blobUrl);
-              return;
-            }
-            chunks.push(r.value);
-            received += r.value.length;
-            if (total) {
-              var pct = Math.round(received/total*100);
-              document.getElementById('splash-bar').style.width = pct+'%';
-              document.getElementById('splash-pct').textContent = pct+'%';
-              setSplashStatus('Download: '+pct+'%');
-            } else {
-              setSplashStatus('Download: '+(received/1024/1024).toFixed(1)+' MB...');
-            }
-            return read();
-          });
-        }
-        return read();
+        if (!res.ok) throw new Error('HTTP '+res.status);
+        return blobFromResponse(res, 'puter.net.fetch');
       })
       .catch(function(e) {
-        log('⚠ Proxy '+proxyIndex+' fallito: '+e.message,'warn');
-        proxyIndex++;
-        tryNext();
+        log('⚠ puter fallito: '+e.message+' — provo fetch diretto...','warn');
+        tryDirect(romUrl);
       });
+  } else {
+    log('⚠ puter.js non disponibile — provo fetch diretto...','warn');
+    tryDirect(romUrl);
   }
+}
 
-  tryNext();
+function tryDirect(romUrl) {
+  log('📡 Metodo 2: fetch diretto...','info');
+  fetch(romUrl)
+    .then(function(res) {
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      return blobFromResponse(res, 'fetch diretto');
+    })
+    .catch(function(e) {
+      log('⚠ fetch diretto fallito: '+e.message+' — provo proxy...','warn');
+      tryProxy(romUrl);
+    });
 }
 
 /* ── Boot ── */
 if (!gameUrl) {
   log('❌ Nessuna URL passata!','err');
-  setSplashStatus('❌ Nessuna ROM specificata');
+  splashError('❌ Nessuna ROM specificata');
 } else {
   downloadROM(gameUrl);
 }
