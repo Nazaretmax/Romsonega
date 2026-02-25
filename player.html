@@ -9,172 +9,120 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --accent: #ff3c78;
-  --purple: #7b2ff7;
-  --cyan:   #00e5ff;
-  --bar:    #0c0c18;
-  --border: #1e1e30;
-  --text:   #e8e8f0;
-  --muted:  #555570;
+  --accent: #ff3c78; --purple: #7b2ff7; --cyan: #00e5ff;
+  --yellow: #ffb300; --bar: #0c0c18; --border: #1e1e30;
+  --text: #e8e8f0; --muted: #555570;
 }
+html, body { width:100%; height:100%; background:#000; overflow:hidden; font-family:-apple-system,system-ui,sans-serif; -webkit-tap-highlight-color:transparent; }
 
-html, body {
-  width: 100%; height: 100%;
-  background: #000;
-  overflow: hidden;
-  -webkit-tap-highlight-color: transparent;
-  font-family: -apple-system, system-ui, sans-serif;
-}
-
-/* ── TOP BAR ── */
+/* ── TOPBAR ── */
 #topbar {
-  position: fixed; top: 0; left: 0; right: 0;
-  height: 44px; z-index: 9999;
-  background: var(--bar);
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center;
-  padding: 0 0.6rem; gap: 0.5rem;
+  position:fixed; top:0; left:0; right:0; height:44px;
+  background:var(--bar); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 0.6rem; gap:0.4rem; z-index:9999;
 }
 .tb-btn {
-  border-radius: 6px; cursor: pointer;
-  font-size: 0.72rem; font-weight: 600;
-  padding: 0.3rem 0.65rem;
-  display: flex; align-items: center; gap: 0.3rem;
-  white-space: nowrap; flex-shrink: 0;
-  text-decoration: none; transition: all 0.15s;
-  -webkit-tap-highlight-color: transparent;
+  border-radius:6px; cursor:pointer; font-size:0.7rem; font-weight:600;
+  padding:0.28rem 0.6rem; display:flex; align-items:center; gap:0.3rem;
+  white-space:nowrap; flex-shrink:0; text-decoration:none; transition:all 0.15s;
+  -webkit-tap-highlight-color:transparent; border:1px solid;
 }
-#btn-back {
-  background: rgba(255,60,120,0.1);
-  border: 1px solid rgba(255,60,120,0.35);
-  color: var(--accent);
-}
-#btn-back:hover  { background: rgba(255,60,120,0.2); }
-#btn-back:active { background: var(--accent); color: #000; border-color: var(--accent); }
+#btn-back   { background:rgba(255,60,120,0.1); border-color:rgba(255,60,120,0.35); color:var(--accent); }
+#btn-orient { background:rgba(123,47,247,0.1); border-color:rgba(123,47,247,0.35); color:var(--purple); }
+#btn-fs     { background:rgba(0,229,255,0.08); border-color:rgba(0,229,255,0.25);  color:var(--cyan); font-size:1rem; padding:0.2rem 0.45rem; }
+#btn-log    { background:rgba(255,179,0,0.1);  border-color:rgba(255,179,0,0.3);   color:var(--yellow); }
+#btn-back:active   { background:var(--accent); color:#000; }
+#btn-orient:active { background:var(--purple); color:#fff; }
+#btn-fs:active     { background:var(--cyan);   color:#000; }
+#btn-log:active    { background:var(--yellow);  color:#000; }
+#game-title { flex:1; font-size:0.75rem; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-#btn-orient {
-  background: rgba(123,47,247,0.1);
-  border: 1px solid rgba(123,47,247,0.35);
-  color: var(--purple);
-}
-#btn-orient:hover  { background: rgba(123,47,247,0.2); }
-#btn-orient:active { background: var(--purple); color: #fff; }
-
-#btn-fs {
-  background: rgba(0,229,255,0.08);
-  border: 1px solid rgba(0,229,255,0.25);
-  color: var(--cyan);
-  font-size: 1rem; padding: 0.2rem 0.5rem;
-}
-#btn-fs:hover  { background: rgba(0,229,255,0.18); }
-#btn-fs:active { background: var(--cyan); color: #000; }
-
-#game-title {
-  flex: 1; font-size: 0.78rem; font-weight: 600;
-  color: var(--text); overflow: hidden;
-  text-overflow: ellipsis; white-space: nowrap;
-}
-
-/* ── GAME WRAPPER ──
-   EmulatorJS docs say: wrap #game in a div with explicit px dimensions.
-   We use JS to set these based on window size.
-── */
+/* ── GAME AREA ── */
 #game-area {
-  position: fixed;
-  top: 44px; left: 0; right: 0; bottom: 0;
-  background: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position:fixed; top:44px; left:0; right:0; bottom:0;
+  background:#000; display:flex; align-items:center; justify-content:center;
 }
+/* CRITICAL: ejs-wrapper needs explicit px size set by JS */
+#ejs-wrapper { position:relative; background:#000; }
+#game        { width:100%; height:100%; }
 
-/*
-  CRITICAL: #ejs-wrapper must have explicit pixel width/height.
-  Set by JS. EmulatorJS reads offsetWidth/offsetHeight from this.
-*/
-#ejs-wrapper {
-  /* JS sets width/height as inline style */
-  position: relative;
-  background: #000;
-}
-
-/* #game must fill the wrapper exactly */
-#game {
-  width: 100%;
-  height: 100%;
-}
-
-/* ── MOBILE LANDSCAPE via body class ── */
-body.landscape #game-area {
-  /* On mobile: rotate via JS transform */
-}
-
-/* ── SPINNER overlay (before EJS loads) ── */
+/* ── SPLASH ── */
 #splash {
-  position: absolute; inset: 0;
-  background: #000;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 1rem; z-index: 10;
-  pointer-events: none;
+  position:absolute; inset:0; background:#000; z-index:10;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:1rem; pointer-events:none;
 }
-.spinner {
-  width: 46px; height: 46px; border-radius: 50%;
-  border: 3px solid #1a1a28;
-  border-top-color: var(--accent);
-  border-right-color: var(--purple);
-  animation: spin 0.75s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.splash-txt {
-  font-family: monospace; font-size: 0.6rem;
-  color: var(--muted); letter-spacing: 0.12em;
-  animation: blink 1s step-end infinite;
-}
-.splash-sub { font-family: monospace; font-size: 0.68rem; color: #222235; }
-@keyframes blink { 50% { opacity: 0; } }
+.spinner { width:46px; height:46px; border-radius:50%; border:3px solid #1a1a28; border-top-color:var(--accent); border-right-color:var(--purple); animation:spin 0.75s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.splash-txt { font-family:monospace; font-size:0.58rem; color:var(--muted); letter-spacing:0.12em; animation:blink 1s step-end infinite; }
+.splash-sub { font-family:monospace; font-size:0.68rem; color:#222235; }
+@keyframes blink { 50%{opacity:0} }
 
-/* ── Floating back btn in mobile landscape ── */
+/* ── LANDSCAPE (mobile) ── */
+body.landscape #topbar      { display:none; }
+body.landscape #float-back  { display:flex; }
+
 #float-back {
-  display: none;
-  position: fixed;
-  z-index: 9999;
-  top: 8px; left: 8px;
-  background: rgba(0,0,0,0.8);
-  border: 1px solid rgba(255,60,120,0.5);
-  color: var(--accent);
-  font-size: 0.72rem; font-weight: 700;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  text-decoration: none;
-  backdrop-filter: blur(6px);
+  display:none; position:fixed; z-index:9999; top:8px; left:8px;
+  background:rgba(0,0,0,0.85); border:1px solid rgba(255,60,120,0.5);
+  color:var(--accent); font-size:0.72rem; font-weight:700;
+  padding:0.4rem 0.8rem; border-radius:6px; text-decoration:none;
+  backdrop-filter:blur(6px); align-items:center; gap:0.3rem;
 }
-body.landscape #float-back { display: block; }
-body.landscape #topbar      { display: none; }
+
+/* ── LOG PANEL ── */
+#log-panel {
+  display:none; position:fixed; bottom:0; left:0; right:0; height:46vh;
+  background:#05050e; border-top:2px solid var(--yellow);
+  z-index:99999; flex-direction:column;
+}
+#log-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:5px 10px; background:#09091a; border-bottom:1px solid #1a1a28; flex-shrink:0;
+}
+#log-header span { font-family:monospace; font-size:11px; color:var(--yellow); letter-spacing:0.1em; }
+#log-header div  { display:flex; gap:6px; }
+.log-hbtn { font-size:10px; padding:2px 8px; border-radius:4px; cursor:pointer; border:1px solid; }
+#log-list {
+  flex:1; overflow-y:auto; padding:6px 10px;
+  font-family:monospace; font-size:11px; line-height:1.6;
+}
+.log-entry { padding:2px 0; border-bottom:1px solid #0e0e1e; word-break:break-all; }
+.log-entry .ts { opacity:0.35; margin-right:6px; }
 </style>
 </head>
 <body>
 
-<!-- TOP BAR -->
+<!-- TOPBAR -->
 <div id="topbar">
   <a id="btn-back" class="tb-btn" href="gba-arcade.html">← Libreria</a>
   <div id="game-title">Caricamento...</div>
   <button id="btn-orient" class="tb-btn" onclick="toggleOrientation()">⟳ Landscape</button>
   <button id="btn-fs"     class="tb-btn" onclick="toggleFullscreen()">⛶</button>
+  <button id="btn-log"    class="tb-btn" onclick="toggleLog()">🐛 LOG</button>
 </div>
 
-<!-- Floating back (visible only in mobile landscape) -->
+<!-- Mobile landscape back -->
 <a id="float-back" href="gba-arcade.html">← Esci</a>
+
+<!-- LOG PANEL — must be in DOM BEFORE any script that uses it -->
+<div id="log-panel">
+  <div id="log-header">
+    <span>🐛 DEBUG LOG</span>
+    <div>
+      <button class="log-hbtn" onclick="document.getElementById('log-list').innerHTML=''"
+        style="background:rgba(255,68,68,0.15);border-color:rgba(255,68,68,0.3);color:#ff4444;">CLEAR</button>
+      <button class="log-hbtn" onclick="toggleLog()"
+        style="background:rgba(255,179,0,0.15);border-color:rgba(255,179,0,0.3);color:#ffb300;">✕ CHIUDI</button>
+    </div>
+  </div>
+  <div id="log-list"></div>
+</div>
 
 <!-- GAME AREA -->
 <div id="game-area">
-  <!--
-    IMPORTANT (from official docs):
-    #game must be inside a wrapper with EXPLICIT px width+height.
-    EmulatorJS uses offsetWidth/offsetHeight to size the canvas.
-    Without these, canvas = 0x0 = black screen.
-  -->
   <div id="ejs-wrapper">
+    <!-- #game MUST exist before loader.js — EmulatorJS renders inside here -->
     <div id="game"></div>
     <div id="splash">
       <div class="spinner"></div>
@@ -184,51 +132,111 @@ body.landscape #topbar      { display: none; }
   </div>
 </div>
 
-<!-- CONFIG — must be BEFORE loader.js -->
+<!--
+  CONFIG SCRIPT — runs AFTER all DOM elements exist above,
+  and BEFORE loader.js below.
+-->
 <script>
-/* ── Read URL params ── */
-const params  = new URLSearchParams(window.location.search);
-const gameUrl = params.get('url')   || '';
-const title   = params.get('title') || 'Gioco GBA';
+/* ── URL params ── */
+var params  = new URLSearchParams(window.location.search);
+var gameUrl = params.get('url')   || '';
+var title   = params.get('title') || 'Gioco GBA';
 
 document.getElementById('game-title').textContent = title;
 document.title = title + ' — GBA Arcade';
 
-/* ────────────────────────────────────────────────
-   SET WRAPPER DIMENSIONS
-   EmulatorJS needs explicit pixel width+height on
-   the parent of #game. We calculate from window.
-──────────────────────────────────────────────── */
+/* ────────────────────────────────────────────
+   WRAPPER SIZING
+   EmulatorJS needs explicit px width+height.
+   We set them now and on every resize.
+──────────────────────────────────────────── */
 function sizeWrapper() {
-  const availW = window.innerWidth;
-  const availH = window.innerHeight - 44; // subtract topbar
-
-  // GBA aspect ratio = 3:2
-  const ratio = 3 / 2;
-  let w, h;
-
-  if (availW / availH > ratio) {
-    // Width-constrained by height
-    h = availH;
-    w = Math.round(h * ratio);
-  } else {
-    // Height-constrained by width
-    w = availW;
-    h = Math.round(w / ratio);
-  }
-
-  const wrapper = document.getElementById('ejs-wrapper');
-  wrapper.style.width  = w + 'px';
-  wrapper.style.height = h + 'px';
+  var availW = window.innerWidth;
+  var availH = window.innerHeight - 44;
+  var ratio  = 3 / 2; /* GBA aspect ratio */
+  var w, h;
+  if (availW / availH > ratio) { h = availH; w = Math.round(h * ratio); }
+  else                          { w = availW; h = Math.round(w / ratio); }
+  var wr = document.getElementById('ejs-wrapper');
+  wr.style.width  = w + 'px';
+  wr.style.height = h + 'px';
 }
-
 sizeWrapper();
 window.addEventListener('resize', sizeWrapper);
 
-/* ────────────────────────────────────────────────
+/* ────────────────────────────────────────────
+   DEBUG LOG
+   log-panel and log-list are already in DOM ↑
+──────────────────────────────────────────── */
+var logList = document.getElementById('log-list');
+var logOpen = false;
+
+function log(msg, type) {
+  var colors = { ok:'#00ffa0', err:'#ff4444', warn:'#ffb300', info:'#00c8ff' };
+  var t  = new Date().toLocaleTimeString('it', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var d  = document.createElement('div');
+  d.className = 'log-entry';
+  d.style.color = colors[type] || '#aaaaaa';
+  d.innerHTML   = '<span class="ts">' + t + '</span>' + msg;
+  logList.appendChild(d);
+  logList.scrollTop = logList.scrollHeight;
+}
+
+function toggleLog() {
+  logOpen = !logOpen;
+  document.getElementById('log-panel').style.display = logOpen ? 'flex' : 'none';
+  document.getElementById('btn-log').textContent = logOpen ? '✕ LOG' : '🐛 LOG';
+}
+
+/* Catch all JS errors */
+window.addEventListener('error', function(e) {
+  log('❌ ' + e.message + ' [' + (e.filename||'').split('/').pop() + ':' + e.lineno + ']', 'err');
+});
+window.addEventListener('unhandledrejection', function(e) {
+  log('❌ Promise: ' + (e.reason && (e.reason.message || e.reason)), 'err');
+});
+
+/* Intercept console.error / warn */
+var _ce = console.error;
+console.error = function() { log('❌ console.error: ' + Array.from(arguments).join(' '), 'err'); _ce.apply(console, arguments); };
+var _cw = console.warn;
+console.warn  = function() { log('⚠ console.warn: '  + Array.from(arguments).join(' '), 'warn'); _cw.apply(console, arguments); };
+
+/* Intercept fetch */
+var _fetch = window.fetch;
+window.fetch = function(url, opts) {
+  var short = (typeof url === 'string') ? url.split('/').slice(-2).join('/') : String(url);
+  log('📡 fetch → ' + short, 'info');
+  return _fetch.apply(this, arguments)
+    .then(function(r) {
+      log((r.ok ? '✅' : '⚠️') + ' HTTP ' + r.status + ' ← ' + short, r.ok ? 'ok' : 'warn');
+      return r;
+    })
+    .catch(function(e) {
+      log('❌ fetch FAIL: ' + e.message + ' ← ' + short, 'err');
+      throw e;
+    });
+};
+
+/* Intercept XMLHttpRequest */
+var _XHR = window.XMLHttpRequest;
+window.XMLHttpRequest = function() {
+  var xhr = new _XHR();
+  var _open = xhr.open.bind(xhr);
+  xhr.open = function(method, url) {
+    var short = url.split('/').slice(-2).join('/');
+    log('📡 XHR ' + method + ' → ' + short, 'info');
+    xhr.addEventListener('load',  function() { log((xhr.status < 400 ? '✅' : '⚠️') + ' HTTP ' + xhr.status + ' ← ' + short, xhr.status < 400 ? 'ok' : 'warn'); });
+    xhr.addEventListener('error', function() { log('❌ XHR FAIL ← ' + short, 'err'); });
+    return _open(method, url);
+  };
+  return xhr;
+};
+
+/* ────────────────────────────────────────────
    EMULATORJS GLOBALS
-   Must be set before loader.js runs.
-──────────────────────────────────────────────── */
+   var declarations are required — no 'use strict'
+──────────────────────────────────────────── */
 var EJS_player          = '#game';
 var EJS_core            = 'mgba';
 var EJS_gameUrl         = gameUrl;
@@ -238,57 +246,48 @@ var EJS_color           = '#7b2ff7';
 var EJS_backgroundColor = '#000000';
 var EJS_AdUrl           = '';
 
-var EJS_onGameStart = function () {
+var EJS_onGameStart = function() {
+  log('🎮 EJS_onGameStart → GIOCO AVVIATO!', 'ok');
   var s = document.getElementById('splash');
   if (s) s.style.display = 'none';
 };
 
-/* ── Orientation toggle ── */
-let landscape = false;
+var EJS_onLoadError = function(e) {
+  log('❌ EJS_onLoadError → ' + (e || 'errore sconosciuto'), 'err');
+};
 
+/* ── Initial log ── */
+log('━━━ START ━━━', 'info');
+log('🎮 Titolo: ' + title, 'info');
+log('🔗 ROM URL: ' + (gameUrl ? gameUrl.split('/').pop() : '⚠ NESSUNA URL!'), gameUrl ? 'info' : 'err');
+log('📦 CDN: ' + EJS_pathtodata, 'info');
+var wr = document.getElementById('ejs-wrapper');
+log('📐 Wrapper: ' + wr.style.width + ' × ' + wr.style.height, 'info');
+log('⏳ Caricamento loader.js...', 'info');
+
+/* ── Orientation ── */
+var landscape = false;
 function toggleOrientation() {
   landscape = !landscape;
   document.body.classList.toggle('landscape', landscape);
-  const btn = document.getElementById('btn-orient');
-  btn.textContent = landscape ? '⟳ Portrait' : '⟳ Landscape';
+  document.getElementById('btn-orient').textContent = landscape ? '⟳ Portrait' : '⟳ Landscape';
+  log('🔄 Orientamento: ' + (landscape ? 'landscape' : 'portrait'), 'info');
 
-  if (landscape) {
-    // Mobile: rotate game-area via transform
-    if (window.innerWidth < 768) {
-      const area = document.getElementById('game-area');
-      const w = window.innerHeight - 0;  // rotated: height becomes width
-      const h = window.innerWidth;
-      area.style.width           = w + 'px';
-      area.style.height          = h + 'px';
-      area.style.top             = '0';
-      area.style.transformOrigin = 'top left';
-      area.style.transform       = `rotate(90deg) translateX(0) translateY(-100%)`;
-      area.style.left            = '0';
-      area.style.right           = 'auto';
-      area.style.bottom          = 'auto';
-
-      // Resize wrapper for landscape
-      const wrapper = document.getElementById('ejs-wrapper');
-      const ratio   = 3 / 2;
-      const lw      = Math.min(w, Math.round(h * ratio));
-      const lh      = Math.round(lw / ratio);
-      wrapper.style.width  = lw + 'px';
-      wrapper.style.height = lh + 'px';
-    }
-    try { screen.orientation.lock('landscape').catch(()=>{}); } catch(e) {}
+  var area = document.getElementById('game-area');
+  if (landscape && window.innerWidth < 769) {
+    var lw = window.innerHeight;
+    var lh = window.innerWidth;
+    area.style.cssText = 'position:fixed;top:0;left:0;background:#000;display:flex;align-items:center;justify-content:center;';
+    area.style.width           = lw + 'px';
+    area.style.height          = lh + 'px';
+    area.style.transformOrigin = 'top left';
+    area.style.transform       = 'rotate(90deg) translateX(0) translateY(-100%)';
+    var ratio = 3/2, rw = Math.min(lw, Math.round(lh*ratio)), rh = Math.round(rw/ratio);
+    wr.style.width  = rw + 'px';
+    wr.style.height = rh + 'px';
+    try { screen.orientation.lock('landscape').catch(function(){}); } catch(e) {}
   } else {
-    // Back to portrait
-    const area = document.getElementById('game-area');
-    area.style.cssText = '';
-    area.style.position = 'fixed';
-    area.style.top      = '44px';
-    area.style.left     = '0';
-    area.style.right    = '0';
-    area.style.bottom   = '0';
-    area.style.background = '#000';
-    area.style.display    = 'flex';
-    area.style.alignItems = 'center';
-    area.style.justifyContent = 'center';
+    area.style.cssText = 'position:fixed;top:44px;left:0;right:0;bottom:0;background:#000;display:flex;align-items:center;justify-content:center;';
     sizeWrapper();
     try { screen.orientation.unlock(); } catch(e) {}
   }
@@ -297,19 +296,25 @@ function toggleOrientation() {
 /* ── Fullscreen ── */
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(()=>{});
+    document.documentElement.requestFullscreen().catch(function(e){ log('⚠ Fullscreen: ' + e.message, 'warn'); });
   } else {
-    document.exitFullscreen().catch(()=>{});
+    document.exitFullscreen();
   }
 }
-document.addEventListener('fullscreenchange', () => {
+document.addEventListener('fullscreenchange', function() {
   document.getElementById('btn-fs').textContent = document.fullscreenElement ? '✕' : '⛶';
   sizeWrapper();
 });
 </script>
 
-<!-- loader.js — STATIC tag (never inject dynamically) -->
-<script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
+<!--
+  loader.js MUST be a STATIC <script> tag.
+  Never inject it with document.createElement('script').
+-->
+<script src="https://cdn.emulatorjs.org/stable/data/loader.js"
+  onload="log('✅ loader.js caricato!','ok')"
+  onerror="log('❌ loader.js FALLITO — CDN non raggiungibile','err')">
+</script>
 
 </body>
 </html>
