@@ -246,55 +246,89 @@ function startEmulatorWithBlob(blobUrl) {
   document.head.appendChild(s);
 }
 
-function downloadROM(url) {
-  log('📥 Download ROM con fetch()...','info');
-  setSplashStatus('Download ROM in corso...');
-  document.getElementById('splash-bar-wrap').style.display = 'block';
+/* CORS proxy list — tried in order until one works */
+var PROXIES = [
+  '',                                          /* 1. diretto (funziona se CORS ok) */
+  'https://corsproxy.io/?',                    /* 2. corsproxy.io */
+  'https://api.allorigins.win/raw?url=',       /* 3. allorigins */
+  'https://proxy.cors.sh/',                    /* 4. cors.sh */
+];
+var proxyIndex = 0;
 
-  fetch(url)
+function fetchWithProxy(romUrl, proxyPrefix) {
+  var fetchUrl = proxyPrefix
+    ? proxyPrefix + encodeURIComponent(romUrl)
+    : romUrl;
+
+  var label = proxyPrefix
+    ? proxyPrefix.split('/')[2]   /* hostname only */
+    : 'diretto';
+
+  log('📡 Tentativo '+(proxyIndex+1)+'/'+PROXIES.length+' via '+label, 'info');
+  setSplashStatus('Download ROM... ('+label+')');
+
+  return fetch(fetchUrl, { mode: 'cors' })
     .then(function(res) {
       if (!res.ok) throw new Error('HTTP '+res.status);
-      log('✅ fetch OK (HTTP '+res.status+') — lettura bytes...','ok');
-
-      var total = parseInt(res.headers.get('content-length')||'0');
-      if (total) log('📦 Dimensione: '+(total/1024/1024).toFixed(1)+' MB','info');
-
-      /* Stream with progress */
-      var reader = res.body.getReader();
-      var chunks = [];
-      var received = 0;
-
-      function read() {
-        return reader.read().then(function(r) {
-          if (r.done) {
-            log('✅ Download completo: '+(received/1024/1024).toFixed(1)+' MB','ok');
-            var blob    = new Blob(chunks);
-            var blobUrl = URL.createObjectURL(blob);
-            log('🔗 Blob URL creato','ok');
-            startEmulatorWithBlob(blobUrl);
-            return;
-          }
-          chunks.push(r.value);
-          received += r.value.length;
-          if (total) {
-            var pct = Math.round(received/total*100);
-            document.getElementById('splash-bar').style.width = pct+'%';
-            document.getElementById('splash-pct').textContent = pct+'%';
-            setSplashStatus('Download ROM: '+pct+'%');
-          } else {
-            setSplashStatus('Download: '+(received/1024/1024).toFixed(1)+' MB');
-          }
-          return read();
-        });
-      }
-      return read();
-    })
-    .catch(function(e) {
-      log('❌ Download fallito: '+e.message,'err');
-      setSplashStatus('❌ Download fallito: '+e.message);
-      document.getElementById('splash-pct').style.color='#ff4444';
-      document.getElementById('splash-pct').textContent='Errore';
+      return res;
     });
+}
+
+function downloadROM(url) {
+  log('📥 Download ROM...','info');
+  document.getElementById('splash-bar-wrap').style.display = 'block';
+
+  function tryNext() {
+    if (proxyIndex >= PROXIES.length) {
+      log('❌ Tutti i proxy falliti.','err');
+      setSplashStatus('❌ Impossibile scaricare la ROM');
+      document.getElementById('splash-pct').style.color='#ff4444';
+      document.getElementById('splash-pct').textContent='Errore CORS';
+      return;
+    }
+
+    fetchWithProxy(url, PROXIES[proxyIndex])
+      .then(function(res) {
+        log('✅ Risposta OK via proxy '+proxyIndex+' — lettura bytes...','ok');
+        var total = parseInt(res.headers.get('content-length')||'0');
+        if (total) log('📦 '+(total/1024/1024).toFixed(1)+' MB','info');
+
+        var reader   = res.body.getReader();
+        var chunks   = [];
+        var received = 0;
+
+        function read() {
+          return reader.read().then(function(r) {
+            if (r.done) {
+              log('✅ Download completo: '+(received/1024/1024).toFixed(1)+' MB','ok');
+              var blobUrl = URL.createObjectURL(new Blob(chunks));
+              log('🔗 Blob URL pronto','ok');
+              startEmulatorWithBlob(blobUrl);
+              return;
+            }
+            chunks.push(r.value);
+            received += r.value.length;
+            if (total) {
+              var pct = Math.round(received/total*100);
+              document.getElementById('splash-bar').style.width = pct+'%';
+              document.getElementById('splash-pct').textContent = pct+'%';
+              setSplashStatus('Download: '+pct+'%');
+            } else {
+              setSplashStatus('Download: '+(received/1024/1024).toFixed(1)+' MB...');
+            }
+            return read();
+          });
+        }
+        return read();
+      })
+      .catch(function(e) {
+        log('⚠ Proxy '+proxyIndex+' fallito: '+e.message,'warn');
+        proxyIndex++;
+        tryNext();
+      });
+  }
+
+  tryNext();
 }
 
 /* ── Boot ── */
