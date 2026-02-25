@@ -186,8 +186,6 @@ body.landscape #topbar      { display: none; }
 
 <!-- CONFIG — must be BEFORE loader.js -->
 <script>
-'use strict';
-
 /* ── Read URL params ── */
 const params  = new URLSearchParams(window.location.search);
 const gameUrl = params.get('url')   || '';
@@ -231,17 +229,17 @@ window.addEventListener('resize', sizeWrapper);
    EMULATORJS GLOBALS
    Must be set before loader.js runs.
 ──────────────────────────────────────────────── */
-EJS_player          = '#game';
-EJS_core            = 'mgba';
-EJS_gameUrl         = gameUrl;
-EJS_pathtodata      = 'https://cdn.emulatorjs.org/stable/data/';
-EJS_startOnLoaded   = true;
-EJS_color           = '#7b2ff7';
-EJS_backgroundColor = '#000000';
-EJS_AdUrl           = '';
+var EJS_player          = '#game';
+var EJS_core            = 'mgba';
+var EJS_gameUrl         = gameUrl;
+var EJS_pathtodata      = 'https://cdn.emulatorjs.org/stable/data/';
+var EJS_startOnLoaded   = true;
+var EJS_color           = '#7b2ff7';
+var EJS_backgroundColor = '#000000';
+var EJS_AdUrl           = '';
 
-EJS_onGameStart = function () {
-  const s = document.getElementById('splash');
+var EJS_onGameStart = function () {
+  var s = document.getElementById('splash');
   if (s) s.style.display = 'none';
 };
 
