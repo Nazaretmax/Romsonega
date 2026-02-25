@@ -8,112 +8,208 @@
 <title>GBA Player</title>
 <style>
 *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-:root {
-  --accent:#ff3c78; --purple:#7b2ff7; --cyan:#00e5ff;
-  --yellow:#ffb300; --bar:#0c0c18; --border:#1e1e30;
-  --text:#e8e8f0; --muted:#555570;
+
+html, body {
+  width:100%; height:100%;
+  background:#000;
+  overflow:hidden;
+  font-family:-apple-system, system-ui, sans-serif;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
 }
-html, body { width:100%; height:100%; background:#000; overflow:hidden; font-family:-apple-system,system-ui,sans-serif; -webkit-tap-highlight-color:transparent; }
 
-/* ── TOPBAR ── */
-#topbar { position:fixed; top:0; left:0; right:0; height:44px; background:var(--bar); border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 0.5rem; gap:0.35rem; z-index:9999; }
-.tb { border-radius:6px; cursor:pointer; font-size:0.68rem; font-weight:600; padding:0.28rem 0.55rem; display:flex; align-items:center; gap:0.25rem; white-space:nowrap; flex-shrink:0; text-decoration:none; border:1px solid; -webkit-tap-highlight-color:transparent; }
-#btn-back   { background:rgba(255,60,120,0.1);  border-color:rgba(255,60,120,0.35); color:var(--accent); }
-#btn-orient { background:rgba(123,47,247,0.1);  border-color:rgba(123,47,247,0.35); color:var(--purple); }
-#btn-fs     { background:rgba(0,229,255,0.08);  border-color:rgba(0,229,255,0.25);  color:var(--cyan); font-size:0.95rem; }
-#btn-log    { background:rgba(255,179,0,0.1);   border-color:rgba(255,179,0,0.3);   color:var(--yellow); }
-#btn-back:active   { background:var(--accent); color:#000; }
-#btn-orient:active { background:var(--purple); color:#fff; }
-#btn-fs:active     { background:var(--cyan);   color:#000; }
-#btn-log:active    { background:var(--yellow);  color:#000; }
-#game-title { flex:1; font-size:0.72rem; font-weight:600; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+/* ═══════════════════════════════
+   GAME FILLS ENTIRE SCREEN
+═══════════════════════════════ */
+#ejs-wrapper {
+  position:fixed;
+  inset:0;
+  background:#000;
+  /* EmulatorJS needs explicit px — set by JS */
+}
+#game {
+  width:100%;
+  height:100%;
+}
 
-/* ── GAME AREA ── */
-#game-area { position:fixed; top:44px; left:0; right:0; bottom:0; background:#000; display:flex; align-items:center; justify-content:center; }
-/* EmulatorJS REQUIRES explicit px dimensions on the wrapper */
-#ejs-wrapper { position:relative; background:#000; }
-#game { width:100%; height:100%; }
-
-/* ── SPLASH ── */
-#splash { position:absolute; inset:0; background:#000; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.85rem; padding:1.5rem; text-align:center; }
-.spin { width:44px; height:44px; border-radius:50%; border:3px solid #1a1a28; border-top-color:var(--accent); border-right-color:var(--purple); animation:spin 0.7s linear infinite; flex-shrink:0; }
+/* ═══════════════════════════════
+   LOADING SCREEN
+   Shown while ROM is downloading
+═══════════════════════════════ */
+#splash {
+  position:fixed; inset:0;
+  background:#000;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:1.2rem; z-index:100;
+  padding:2rem;
+}
+.spin {
+  width:48px; height:48px; border-radius:50%;
+  border:3px solid #111122;
+  border-top-color:#ff3c78;
+  border-right-color:#7b2ff7;
+  animation:spin .7s linear infinite;
+}
 @keyframes spin { to { transform:rotate(360deg); } }
-#spl-status { font-family:monospace; font-size:0.56rem; color:var(--muted); letter-spacing:0.1em; }
-#spl-bar-wrap { width:240px; max-width:80vw; height:6px; background:#111122; border-radius:3px; overflow:hidden; display:none; }
-#spl-bar { height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--purple)); transition:width 0.2s; }
-#spl-pct { font-family:monospace; font-size:0.58rem; color:var(--purple); min-height:1em; }
 
-/* ── LANDSCAPE (mobile only) ── */
-body.ls #topbar     { display:none; }
-body.ls #float-back { display:flex; }
-#float-back { display:none; position:fixed; z-index:9999; top:8px; left:8px; background:rgba(0,0,0,0.88); border:1px solid rgba(255,60,120,0.5); color:var(--accent); font-size:0.7rem; font-weight:700; padding:0.38rem 0.75rem; border-radius:6px; text-decoration:none; backdrop-filter:blur(6px); align-items:center; gap:0.3rem; }
+#spl-title {
+  font-size:clamp(0.8rem, 2.5vw, 1.1rem);
+  font-weight:600; color:#e8e8f0;
+  text-align:center;
+  max-width:80vw;
+  overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#spl-status {
+  font-family:monospace;
+  font-size:0.62rem; letter-spacing:0.1em;
+  color:#555570; text-align:center;
+}
+#spl-bar-wrap {
+  width:min(260px, 70vw); height:5px;
+  background:#111122; border-radius:3px; overflow:hidden;
+  display:none;
+}
+#spl-bar {
+  height:100%; width:0%;
+  background:linear-gradient(90deg,#ff3c78,#7b2ff7);
+  transition:width .2s;
+  border-radius:3px;
+}
+#spl-pct {
+  font-family:monospace; font-size:0.6rem;
+  color:#7b2ff7; min-height:1em;
+}
 
-/* ── LOG PANEL ── */
-#log-panel { display:none; position:fixed; bottom:0; left:0; right:0; height:45vh; background:#05050e; border-top:2px solid var(--yellow); z-index:99999; flex-direction:column; }
-#log-hdr { display:flex; align-items:center; justify-content:space-between; padding:4px 10px; background:#08081a; border-bottom:1px solid #1a1a28; flex-shrink:0; }
-#log-hdr span { font-family:monospace; font-size:10px; color:var(--yellow); letter-spacing:0.1em; }
+/* ═══════════════════════════════
+   FLOATING HUD
+   Appears on hover/tap, auto-hides
+═══════════════════════════════ */
+#hud {
+  position:fixed; top:0; left:0; right:0;
+  height:44px;
+  display:flex; align-items:center;
+  padding:0 0.6rem; gap:0.4rem;
+  z-index:500;
+  background:linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, transparent 100%);
+  backdrop-filter:blur(0px);
+  opacity:0;
+  transition:opacity 0.3s;
+  pointer-events:none;
+}
+/* Show HUD on hover (PC) */
+body:hover #hud,
+/* Show HUD when active (touch) */
+#hud.visible {
+  opacity:1;
+  pointer-events:all;
+}
+/* Always show if splash visible */
+body.loading #hud { display:none; }
+
+.hb {
+  border-radius:6px; cursor:pointer;
+  font-size:0.68rem; font-weight:600;
+  padding:0.28rem 0.6rem;
+  display:flex; align-items:center; gap:0.25rem;
+  white-space:nowrap; flex-shrink:0;
+  text-decoration:none;
+  background:rgba(0,0,0,0.6);
+  border:1px solid rgba(255,255,255,0.12);
+  color:rgba(255,255,255,0.85);
+  backdrop-filter:blur(8px);
+  transition:background .15s, border-color .15s;
+}
+.hb:active, .hb:hover { background:rgba(255,255,255,0.15); border-color:rgba(255,255,255,0.3); }
+
+#hud-title {
+  flex:1; font-size:0.72rem; font-weight:600;
+  color:rgba(255,255,255,0.7);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  min-width:0;
+}
+
+/* ═══════════════════════════════
+   LOG PANEL
+═══════════════════════════════ */
+#log-panel {
+  display:none; position:fixed;
+  bottom:0; left:0; right:0; height:45vh;
+  background:rgba(5,5,14,0.97);
+  border-top:1.5px solid #ffb300;
+  z-index:600; flex-direction:column;
+  backdrop-filter:blur(12px);
+}
+#log-hdr {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:4px 10px; border-bottom:1px solid #111128; flex-shrink:0;
+}
+#log-hdr span { font-family:monospace; font-size:10px; color:#ffb300; letter-spacing:.1em; }
 .lhb { font-size:10px; padding:2px 7px; border-radius:3px; cursor:pointer; border:1px solid; background:transparent; }
 #log-list { flex:1; overflow-y:auto; padding:5px 10px; font-family:monospace; font-size:10.5px; line-height:1.7; }
 .le { border-bottom:1px solid #0a0a18; word-break:break-all; }
-.le .ts { opacity:0.3; margin-right:5px; font-size:9.5px; }
+.le .ts { opacity:.3; margin-right:4px; font-size:9px; }
 </style>
 </head>
-<body>
+<body class="loading">
 
-<!-- TOPBAR -->
-<div id="topbar">
-  <a  id="btn-back"   class="tb" href="gba-arcade.html">← Libreria</a>
-  <div id="game-title">...</div>
-  <button id="btn-orient" class="tb" onclick="toggleLS()">⟳ Landscape</button>
-  <button id="btn-fs"     class="tb" onclick="toggleFS()">⛶</button>
-  <button id="btn-log"    class="tb" onclick="toggleLog()">🐛 LOG</button>
-</div>
-
-<a id="float-back" href="gba-arcade.html">← Esci</a>
-
-<!-- LOG — MUST be in DOM before any script -->
+<!-- LOG PANEL — must be in DOM before scripts -->
 <div id="log-panel">
   <div id="log-hdr">
     <span>🐛 DEBUG LOG</span>
     <div style="display:flex;gap:5px">
       <button class="lhb" onclick="document.getElementById('log-list').innerHTML=''" style="border-color:rgba(255,68,68,.4);color:#f44">CLEAR</button>
-      <button class="lhb" onclick="toggleLog()" style="border-color:rgba(255,179,0,.4);color:var(--yellow)">✕</button>
+      <button class="lhb" onclick="toggleLog()" style="border-color:rgba(255,179,0,.4);color:#ffb300">✕</button>
     </div>
   </div>
   <div id="log-list"></div>
 </div>
 
-<!-- GAME AREA -->
-<div id="game-area">
-  <div id="ejs-wrapper">
-    <div id="game"></div>
-    <div id="splash">
-      <div class="spin"></div>
-      <div id="spl-status">Avvio...</div>
-      <div id="spl-bar-wrap"><div id="spl-bar"></div></div>
-      <div id="spl-pct"></div>
-    </div>
-  </div>
+<!-- LOADING SCREEN -->
+<div id="splash">
+  <div class="spin"></div>
+  <div id="spl-title">...</div>
+  <div id="spl-status">Avvio...</div>
+  <div id="spl-bar-wrap"><div id="spl-bar"></div></div>
+  <div id="spl-pct"></div>
+</div>
+
+<!-- GAME FILLS SCREEN -->
+<div id="ejs-wrapper">
+  <div id="game"></div>
+</div>
+
+<!-- FLOATING HUD (auto-hide) -->
+<div id="hud">
+  <a  id="hud-back" class="hb" href="gba-arcade.html">← Libreria</a>
+  <div id="hud-title"></div>
+  <button class="hb" onclick="toggleLog()" id="btn-log">🐛</button>
+  <button class="hb" onclick="toggleFS()" id="btn-fs">⛶</button>
 </div>
 
 <script>
 /* ═══════════════════════════════════════════════
-   INIT
+   PARAMS
 ═══════════════════════════════════════════════ */
 var P      = new URLSearchParams(location.search);
 var ROMURL = P.get('url')   || '';
 var TITLE  = P.get('title') || 'GBA Game';
-var FNAME  = decodeURIComponent(ROMURL.split('/').pop()); /* original filename with extension */
+var FNAME  = decodeURIComponent(ROMURL.split('/').pop());
 
-document.getElementById('game-title').textContent = TITLE;
+document.getElementById('spl-title').textContent  = TITLE;
+document.getElementById('hud-title').textContent  = TITLE;
 document.title = TITLE;
 
-/* Wrapper must have explicit px size for EmulatorJS */
+/* ═══════════════════════════════════════════════
+   WRAPPER SIZING
+   EmulatorJS requires EXPLICIT px on wrapper.
+   We fill the entire screen.
+═══════════════════════════════════════════════ */
 function sizeWrap() {
-  var W = window.innerWidth, H = window.innerHeight - 44, R = 3/2, w, h;
-  if (W/H > R) { h=H; w=Math.round(h*R); } else { w=W; h=Math.round(w/R); }
   var wr = document.getElementById('ejs-wrapper');
-  wr.style.width = w+'px'; wr.style.height = h+'px';
+  wr.style.width  = window.innerWidth  + 'px';
+  wr.style.height = window.innerHeight + 'px';
 }
 sizeWrap();
 window.addEventListener('resize', sizeWrap);
@@ -127,92 +223,89 @@ function log(msg, type) {
   var C = {ok:'#00ffa0', err:'#ff4444', warn:'#ffb300', info:'#00c8ff'};
   var t = new Date().toLocaleTimeString('it',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   var d = document.createElement('div');
-  d.className = 'le'; d.style.color = C[type]||'#aaa';
-  d.innerHTML = '<span class="ts">'+t+'</span>'+msg;
-  logList.appendChild(d); logList.scrollTop = logList.scrollHeight;
+  d.className='le'; d.style.color=C[type]||'#aaa';
+  d.innerHTML='<span class="ts">'+t+'</span>'+msg;
+  logList.appendChild(d); logList.scrollTop=logList.scrollHeight;
 }
 function toggleLog() {
-  logOpen = !logOpen;
-  document.getElementById('log-panel').style.display = logOpen ? 'flex' : 'none';
-  document.getElementById('btn-log').textContent = logOpen ? '✕ LOG' : '🐛 LOG';
+  logOpen=!logOpen;
+  document.getElementById('log-panel').style.display=logOpen?'flex':'none';
+  document.getElementById('btn-log').textContent=logOpen?'✕':'🐛';
 }
-/* Catch all errors */
-window.addEventListener('error', function(e) { log('❌ '+e.message+' ['+((e.filename||'').split('/').pop())+':'+e.lineno+']','err'); });
-window.addEventListener('unhandledrejection', function(e) { log('❌ '+(e.reason&&(e.reason.message||e.reason)),'err'); });
+window.addEventListener('error',function(e){ log('❌ '+e.message+' ['+((e.filename||'').split('/').pop())+':'+e.lineno+']','err'); });
+window.addEventListener('unhandledrejection',function(e){ log('❌ '+(e.reason&&(e.reason.message||e.reason)),'err'); });
 var _ce=console.error; console.error=function(){ var m=Array.from(arguments).join(' '); log('❌ '+m,'err'); _ce.apply(console,arguments); };
-var _cw=console.warn;  console.warn =function(){ var m=Array.from(arguments).join(' ');
-  /* silence known noise */
-  if (/gameId|deprecated|EJS_gameID/i.test(m)) return;
+var _cw=console.warn;  console.warn=function(){ var m=Array.from(arguments).join(' ');
+  if(/gameId|deprecated|EJS_gameID/i.test(m)) return;
   log('⚠ '+m,'warn'); _cw.apply(console,arguments);
 };
 
 /* ═══════════════════════════════════════════════
-   UI HELPERS
+   HUD AUTO-HIDE
+   Touch: show for 3s then hide
+   PC:    CSS hover handles it
 ═══════════════════════════════════════════════ */
-function status(msg) { document.getElementById('spl-status').textContent = msg; }
-function setBar(pct) {
-  document.getElementById('spl-bar-wrap').style.display = 'block';
-  document.getElementById('spl-bar').style.width = pct+'%';
-  document.getElementById('spl-pct').textContent = pct > 0 ? pct+'%' : '';
+var hudTimer;
+function showHUD() {
+  var hud = document.getElementById('hud');
+  hud.classList.add('visible');
+  clearTimeout(hudTimer);
+  hudTimer = setTimeout(function(){ hud.classList.remove('visible'); }, 3000);
 }
-function showError(msg) {
-  document.querySelector('.spin').style.display = 'none';
-  status('❌ '+msg);
-  document.getElementById('spl-pct').style.color = '#f44';
-  document.getElementById('spl-pct').textContent = 'Apri LOG 🐛 per dettagli';
-}
+document.addEventListener('touchstart', showHUD, {passive:true});
+document.addEventListener('mousemove',  showHUD);
 
 /* ═══════════════════════════════════════════════
-   ORIENTATION
+   FULLSCREEN
 ═══════════════════════════════════════════════ */
-var isLS = false;
-function toggleLS() {
-  isLS = !isLS;
-  document.body.classList.toggle('ls', isLS);
-  document.getElementById('btn-orient').textContent = isLS ? '⟳ Portrait' : '⟳ Landscape';
-  log('🔄 '+(isLS?'Landscape':'Portrait'),'info');
-  var area = document.getElementById('game-area');
-  var wr   = document.getElementById('ejs-wrapper');
-  if (isLS && window.innerWidth < 769) {
-    var lw = window.innerHeight, lh = window.innerWidth;
-    area.style.cssText = 'position:fixed;top:0;left:0;background:#000;display:flex;align-items:center;justify-content:center;width:'+lw+'px;height:'+lh+'px;transform-origin:top left;transform:rotate(90deg) translateX(0) translateY(-100%);';
-    var rw = Math.min(lw, Math.round(lh*1.5)), rh = Math.round(rw/1.5);
-    wr.style.width = rw+'px'; wr.style.height = rh+'px';
-    try { screen.orientation.lock('landscape').catch(function(){}); } catch(e){}
-  } else {
-    area.style.cssText = 'position:fixed;top:44px;left:0;right:0;bottom:0;background:#000;display:flex;align-items:center;justify-content:center;';
-    sizeWrap();
-    try { screen.orientation.unlock(); } catch(e){}
-  }
+function tryFullscreen() {
+  var el = document.documentElement;
+  var req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
+  if (req) req.call(el).catch(function(){});
 }
 function toggleFS() {
-  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){});
-  else document.exitFullscreen();
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    (document.exitFullscreen || document.webkitExitFullscreen || function(){}).call(document);
+  } else {
+    tryFullscreen();
+  }
 }
-document.addEventListener('fullscreenchange', function() {
-  document.getElementById('btn-fs').textContent = document.fullscreenElement ? '✕' : '⛶';
-  sizeWrap();
-});
+document.addEventListener('fullscreenchange',       function(){ document.getElementById('btn-fs').textContent=document.fullscreenElement?'✕':'⛶'; sizeWrap(); });
+document.addEventListener('webkitfullscreenchange', function(){ document.getElementById('btn-fs').textContent=document.webkitFullscreenElement?'✕':'⛶'; sizeWrap(); });
+
+/* ═══════════════════════════════════════════════
+   SPLASH HELPERS
+═══════════════════════════════════════════════ */
+function splStatus(msg) { document.getElementById('spl-status').textContent = msg; }
+function splBar(pct) {
+  document.getElementById('spl-bar-wrap').style.display='block';
+  document.getElementById('spl-bar').style.width=pct+'%';
+  document.getElementById('spl-pct').textContent=pct>0?pct+'%':'';
+}
+function splError(msg) {
+  document.querySelector('.spin').style.display='none';
+  splStatus('❌ '+msg);
+  document.getElementById('spl-pct').style.color='#f44';
+  document.getElementById('spl-pct').textContent='Apri LOG 🐛 per dettagli';
+}
+function hideSplash() {
+  document.getElementById('splash').style.display='none';
+  document.body.classList.remove('loading');
+  /* Auto fullscreen when game starts */
+  setTimeout(tryFullscreen, 300);
+}
 
 /* ═══════════════════════════════════════════════
    EMULATORJS LAUNCHER
-   Called once we have a valid blob URL.
 ═══════════════════════════════════════════════ */
 function launchEJS(blobUrl) {
   log('▶ Lancio EmulatorJS...','info');
-  status('Avvio emulatore...');
+  splStatus('Avvio emulatore...');
 
-  /*
-    IMPORTANT FIXES applied here:
-    1. EJS_gameName = original filename with extension (.zip)
-       Without this, EJS doesn't know it's a zip and crashes.
-    2. EJS_gameID set to avoid "not set" warnings.
-    3. All vars as window.* so EJS finds them globally.
-  */
   window.EJS_player          = '#game';
   window.EJS_core            = 'mgba';
   window.EJS_gameUrl         = blobUrl;
-  window.EJS_gameName        = FNAME;          /* ← CRITICAL: filename with .zip ext */
+  window.EJS_gameName        = FNAME;   /* CRITICAL: needed so EJS knows it's a .zip */
   window.EJS_gameID          = TITLE.replace(/[^a-z0-9]/gi,'_').toLowerCase();
   window.EJS_pathtodata      = 'https://cdn.emulatorjs.org/stable/data/';
   window.EJS_startOnLoaded   = true;
@@ -220,119 +313,87 @@ function launchEJS(blobUrl) {
   window.EJS_backgroundColor = '#000000';
   window.EJS_language        = 'en';
   window.EJS_AdUrl           = '';
-  window.EJS_disableLocalStorage = false;
 
   window.EJS_onGameStart = function() {
     log('🎮 GIOCO AVVIATO!','ok');
-    document.getElementById('splash').style.display = 'none';
+    hideSplash();
   };
   window.EJS_onLoadError = function(e) {
     log('❌ EJS_onLoadError: '+(e||'?'),'err');
-    showError('Errore emulatore');
+    splError('Errore emulatore');
   };
 
-  log('📦 CDN: '+window.EJS_pathtodata,'info');
   log('📄 gameName: '+window.EJS_gameName,'info');
 
   var s = document.createElement('script');
   s.src = window.EJS_pathtodata+'loader.js';
-  s.onload  = function() { log('✅ loader.js caricato','ok'); };
-  s.onerror = function() { log('❌ loader.js FAIL','err'); showError('CDN non raggiungibile'); };
+  s.onload  = function(){ log('✅ loader.js OK','ok'); };
+  s.onerror = function(){ log('❌ loader.js FAIL','err'); splError('CDN non raggiungibile'); };
   document.head.appendChild(s);
 }
 
 /* ═══════════════════════════════════════════════
    ROM DOWNLOADER — async waterfall
-   Tries each method. Skips to next if:
-   • network error
-   • HTTP status not ok
-   • body < 10 KB (empty/corrupt)
+   codetabs first (most reliable in tests)
 ═══════════════════════════════════════════════ */
-log('━━━ START ━━━','info');
-log('🎮 '+TITLE,'info');
-log('📄 File: '+FNAME,'info');
-
-/* Build proxy/method list */
 function getMethods(url) {
   return [
-    { name:'codetabs',     url: 'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url) },
-    { name:'corsproxy.io', url: 'https://corsproxy.io/?'+encodeURIComponent(url) },
-    { name:'allorigins',   url: 'https://api.allorigins.win/raw?url='+encodeURIComponent(url) },
-    { name:'thingproxy',   url: 'https://thingproxy.freeboard.io/fetch/'+url },
-    { name:'diretto',      url: url }
+    { name:'codetabs',     url:'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(url) },
+    { name:'corsproxy.io', url:'https://corsproxy.io/?'+encodeURIComponent(url) },
+    { name:'allorigins',   url:'https://api.allorigins.win/raw?url='+encodeURIComponent(url) },
+    { name:'thingproxy',   url:'https://thingproxy.freeboard.io/fetch/'+url },
+    { name:'diretto',      url:url }
   ];
 }
 
-/* Stream response into Blob with progress bar. Returns Blob or throws. */
 async function streamToBlob(res, name) {
   var total = 0;
   try { total = parseInt(res.headers.get('content-length')||'0')||0; } catch(e){}
-  if (total) log('📦 Dimensione: '+(total/1048576).toFixed(1)+' MB','info');
+  if (total) log('📦 '+(total/1048576).toFixed(1)+' MB','info');
 
-  var reader   = res.body.getReader();
-  var chunks   = [];
-  var received = 0;
-
+  var reader=res.body.getReader(), chunks=[], received=0;
   while (true) {
-    var chunk = await reader.read();
-    if (chunk.done) break;
-    chunks.push(chunk.value);
-    received += chunk.value.length;
-    if (total > 0) {
-      var pct = Math.round(received/total*100);
-      setBar(pct);
-      status('Download via '+name+': '+pct+'%');
-    } else {
-      status('Download via '+name+': '+(received/1048576).toFixed(1)+' MB...');
-    }
+    var c = await reader.read();
+    if (c.done) break;
+    chunks.push(c.value); received+=c.value.length;
+    if (total>0) { var p=Math.round(received/total*100); splBar(p); splStatus(name+': '+p+'%'); }
+    else          { splStatus(name+': '+(received/1048576).toFixed(1)+' MB...'); }
   }
 
   log('📊 Ricevuti: '+(received/1048576).toFixed(2)+' MB','info');
-
-  /* Minimum size check: GBA ROMs are at least 32 KB */
-  if (received < 10240) {
-    throw new Error('Body troppo piccolo ('+received+' bytes) — probabilmente un redirect vuoto');
-  }
-
-  log('✅ Download OK: '+(received/1048576).toFixed(1)+' MB','ok');
+  if (received < 10240) throw new Error('Body vuoto ('+received+' bytes)');
+  log('✅ Download OK','ok');
   return new Blob(chunks);
 }
 
 async function downloadROM() {
-  if (!ROMURL) { log('❌ Nessuna URL','err'); showError('Nessuna ROM specificata'); return; }
+  if (!ROMURL) { splError('Nessuna ROM'); return; }
+  log('━━━ START ━━━','info');
+  log('🎮 '+TITLE,'info');
+  log('📄 '+FNAME,'info');
 
+  splBar(0);
   var methods = getMethods(ROMURL);
-  setBar(0);
 
-  for (var i = 0; i < methods.length; i++) {
+  for (var i=0; i<methods.length; i++) {
     var m = methods[i];
-    log('📡 ['+(i+1)+'/'+methods.length+'] Tentativo: '+m.name,'info');
-    status('Download via '+m.name+'...');
-
+    log('📡 ['+(i+1)+'/'+methods.length+'] '+m.name,'info');
+    splStatus('Download: '+m.name+'...');
     try {
-      var res = await fetch(m.url, { mode:'cors' });
-
-      if (!res.ok) {
-        throw new Error('HTTP '+res.status+' '+res.statusText);
-      }
-      if (!res.body) {
-        throw new Error('Response body null');
-      }
-
+      var res = await fetch(m.url, {mode:'cors'});
+      if (!res.ok)   throw new Error('HTTP '+res.status);
+      if (!res.body) throw new Error('Body null');
       var blob    = await streamToBlob(res, m.name);
       var blobUrl = URL.createObjectURL(blob);
-      log('🔗 Blob URL creato ('+m.name+')','ok');
+      log('🔗 Blob pronto via '+m.name,'ok');
       launchEJS(blobUrl);
-      return; /* ← success, stop loop */
-
-    } catch (e) {
-      log('⚠ '+m.name+' fallito: '+e.message,'warn');
-      /* continue to next method */
+      return;
+    } catch(e) {
+      log('⚠ '+m.name+': '+e.message,'warn');
     }
   }
-
-  log('❌ Tutti i '+methods.length+' metodi falliti','err');
-  showError('CORS bloccato su tutti i proxy');
+  log('❌ Tutti i metodi falliti','err');
+  splError('CORS bloccato — prova da PC o altra rete');
 }
 
 downloadROM();
