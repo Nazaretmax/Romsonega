@@ -147,7 +147,7 @@ function toggleLog() {
 window.addEventListener('error',function(e){ log('❌ '+e.message+' ('+((e.filename||'').split('/').pop())+':'+e.lineno+')','err'); });
 window.addEventListener('unhandledrejection',function(e){ log('❌ Promise: '+(e.reason&&(e.reason.message||e.reason)),'err'); });
 var _ce=console.error; console.error=function(){ log('❌ '+Array.from(arguments).join(' '),'err'); _ce.apply(console,arguments); };
-var _cw=console.warn;  console.warn =function(){ log('⚠ ' +Array.from(arguments).join(' '),'warn');_cw.apply(console,arguments); };
+var _cw=console.warn;  console.warn =function(){ var m=Array.from(arguments).join(' '); if(m.indexOf('gameId')>=0||m.indexOf('deprecated')>=0) return; log('⚠ '+m,'warn');_cw.apply(console,arguments); };
 
 /* ── UI helpers ── */
 function setSplash(msg) { document.getElementById('splash-status').textContent = msg; }
@@ -211,6 +211,8 @@ function startEmulator(blobUrl) {
   window.EJS_backgroundColor = '#000000';
   window.EJS_language        = 'en';
   window.EJS_gameID          = title.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+  /* Inject gameID as true global var so EJS finds it immediately */
+  try { eval('var EJS_gameID="'+window.EJS_gameID+'"'); } catch(e){}
   window.EJS_AdUrl           = '';
 
   window.EJS_onGameStart = function() {
