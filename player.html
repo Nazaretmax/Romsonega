@@ -210,6 +210,7 @@ function startEmulator(blobUrl) {
   window.EJS_color           = '#7b2ff7';
   window.EJS_backgroundColor = '#000000';
   window.EJS_language        = 'en';
+  window.EJS_gameID          = title.replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
   window.EJS_AdUrl           = '';
 
   window.EJS_onGameStart = function() {
@@ -307,9 +308,9 @@ function downloadROM(romUrl) {
 
   /* Step 1: puter.net.fetch — bypassa CORS lato server Puter */
   if (typeof puter !== 'undefined' && puter.net && puter.net.fetch) {
-    puter.net.fetch(romUrl)
+    puter.net.fetch(romUrl, { redirect: 'follow' })
       .then(function(res) {
-        if (!res.ok) throw new Error('HTTP '+res.status);
+        if (!res.ok && res.status !== 302) throw new Error('HTTP '+res.status);
         return blobFromResponse(res, 'puter.net.fetch');
       })
       .catch(function(e) {
